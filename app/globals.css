@@ -681,7 +681,7 @@ a {
   align-content: start;
   align-self: flex-end;
   max-width: 920px;
-  margin: clamp(148px, 20vh, 220px) 0 clamp(76px, 10vh, 118px);
+  margin: clamp(176px, 23vh, 248px) 0 clamp(76px, 10vh, 118px);
   padding: 0;
   text-shadow: 0 3px 18px rgba(0, 0, 0, 0.78);
 }
@@ -800,22 +800,10 @@ a {
   letter-spacing: 0.012em;
 }
 
-.hero__meta,
 .hero__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-}
-
-.pill {
-  padding: 11px 16px;
-  border-radius: 999px;
-  border: 1px solid rgba(245, 179, 33, 0.22);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 248, 235, 0.92);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-size: 0.73rem;
 }
 
 .tickets {
@@ -1322,7 +1310,8 @@ a {
   }
 
   .page--hero {
-    background-position: center -8px;
+    background-position: center top;
+    background-size: 100% auto;
   }
 
   .hero__logo-stack {
@@ -1334,7 +1323,7 @@ a {
   }
 
   .hero__copy {
-    margin: 118px 0 clamp(42px, 8vh, 72px);
+    margin: 134px 0 clamp(42px, 8vh, 72px);
     padding: 0;
   }
 

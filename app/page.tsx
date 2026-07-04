@@ -229,18 +229,10 @@ export default function Page() {
               <span className="hero__title-credits">
                 with Lassy Marquez, Chad Kinis, and MC Muah.
               </span>
-              <span className="hero__title-secondary">
-                The Laff Control Project
-              </span>
+              <span className="hero__title-secondary">The Laff Control Project</span>
             </h1>
 
-            <div className="hero__meta">
-              <div className="pill">September 13th, 2026</div>
-              <div className="pill">Chula Vista, California</div>
-              <div className="pill">Doors open 6:00 PM</div>
-            </div>
-
-          <div className="hero__actions">
+            <div className="hero__actions">
               <a className="cta cta--hot" href="#tickets">
                 Ticket Info
               </a>
