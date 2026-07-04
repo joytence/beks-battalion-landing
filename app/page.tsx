@@ -1,3 +1,5 @@
+import { InquiryAction } from "./InquiryAction";
+
 const marqueeItems = [
   "Beks Battalion",
   "Coming to San Diego",
@@ -231,9 +233,12 @@ export default function Page() {
                         <li key={perk}>{perk}</li>
                       ))}
                     </ul>
-                    <button className="cta cta--ghost ticket-card__buy" type="button">
-                      Buy Now
-                    </button>
+                    <InquiryAction
+                      className="cta cta--ghost ticket-card__buy"
+                      itemName={tier.name}
+                      kind="ticket"
+                      label="Buy Now"
+                    />
                   </article>
                 ))}
               </div>
@@ -278,9 +283,12 @@ export default function Page() {
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
-                <button className="cta cta--ghost sponsor-card__apply" type="button">
-                  Apply Now
-                </button>
+                <InquiryAction
+                  className="cta cta--ghost sponsor-card__apply"
+                  itemName={sponsor.tier}
+                  kind="sponsor"
+                  label="Apply Now"
+                />
               </article>
             ))}
           </div>
