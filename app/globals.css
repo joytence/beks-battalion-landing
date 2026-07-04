@@ -1393,6 +1393,12 @@ a {
     order: 0;
   }
 
+  .hero__logo-stack,
+  .hero__logo-overlay,
+  .hero__logo-secondary {
+    display: none;
+  }
+
   .page--hero {
     background-position: center 24px;
     background-size: auto 92%;
