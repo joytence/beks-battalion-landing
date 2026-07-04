@@ -1392,4 +1392,9 @@ a {
     justify-content: flex-end;
     order: 0;
   }
+
+  .page--hero {
+    background-position: center 24px;
+    background-size: auto 92%;
+  }
 }
