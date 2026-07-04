@@ -1271,6 +1271,10 @@ a {
     font-size: 0.68rem;
   }
 
+  .marquee {
+    display: none;
+  }
+
   .marquee__row {
     font-size: 0.88rem;
     letter-spacing: 0.18em;
@@ -1311,7 +1315,18 @@ a {
 
   .page--hero {
     background-position: center top;
-    background-size: 100% auto;
+    background-size: auto 80%;
+  }
+
+  .page--hero::after {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.16) 34%,
+        rgba(30, 10, 0, 0.56) 66%,
+        rgba(18, 6, 0, 0.94) 100%
+      );
   }
 
   .hero__logo-stack {
@@ -1323,8 +1338,13 @@ a {
   }
 
   .hero__copy {
-    margin: 134px 0 clamp(42px, 8vh, 72px);
-    padding: 0;
+    margin: 100px 0 clamp(30px, 6vh, 54px);
+    padding: 0 2px 0 0;
+    gap: 10px;
+  }
+
+  .hero__actions {
+    gap: 10px;
   }
 
   .sponsor-cta {
