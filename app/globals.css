@@ -1087,8 +1087,37 @@ a {
   place-items: center;
   background: linear-gradient(135deg, #ff1f78, #ff4966);
   color: #fff;
-  font-weight: 700;
   box-shadow: 0 10px 24px rgba(255, 31, 120, 0.24);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.social:focus-visible {
+  outline: 1px solid rgba(255, 207, 90, 0.72);
+  outline-offset: 3px;
+}
+
+.social:active {
+  color: var(--pink);
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(255, 31, 120, 0.32);
+  transform: translateY(1px);
+}
+
+.social svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: currentColor;
+}
+
+.social svg rect,
+.social svg circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
 }
 
 @media (max-width: 1180px) {
