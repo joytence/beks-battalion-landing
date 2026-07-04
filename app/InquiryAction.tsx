@@ -2,8 +2,6 @@
 
 import { FormEvent, useEffect, useId, useState } from "react";
 
-const recipient = "joy.tence@joystageproductions.com";
-
 type InquiryActionProps = {
   className?: string;
   itemName: string;
@@ -13,9 +11,17 @@ type InquiryActionProps = {
 
 export function InquiryAction({ className, itemName, kind, label }: InquiryActionProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [status, setStatus] = useState<"error" | "idle" | "sending" | "success">("idle");
   const dialogTitleId = useId();
   const messageLabelId = useId();
   const inquiryLabel = kind === "ticket" ? "Ticket Inquiry" : "Sponsor Inquiry";
+
+  function closeModal() {
+    setIsOpen(false);
+    setStatus("idle");
+    setFeedback("");
+  }
 
   useEffect(() => {
     if (!isOpen) {
@@ -24,7 +30,7 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsOpen(false);
+        closeModal();
       }
     };
 
@@ -37,8 +43,10 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
     };
   }, [isOpen]);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setStatus("sending");
+    setFeedback("");
 
     const formData = new FormData(event.currentTarget);
     const name = formData.get("name")?.toString().trim() || "";
@@ -47,25 +55,41 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
     const quantity = formData.get("quantity")?.toString().trim() || "";
     const businessName = formData.get("businessName")?.toString().trim() || "";
     const message = formData.get("message")?.toString().trim() || "";
-    const subject = `Beks Battalion ${inquiryLabel} - ${itemName}`;
-    const body = [
-      `Inquiry Type: ${inquiryLabel}`,
-      `Selected Option: ${itemName}`,
-      ...(kind === "ticket" ? [`Ticket Quantity: ${quantity || "Not provided"}`] : []),
-      ...(kind === "sponsor" ? [`Business Name: ${businessName || "Not provided"}`] : []),
-      "",
-      `Name: ${name}`,
-      `Email: ${email}`,
-      `Phone: ${phone || "Not provided"}`,
-      "",
-      "Message:",
-      message || "Please contact me with more information.",
-    ].join("\n");
 
-    window.location.href = `mailto:${recipient}?subject=${encodeURIComponent(
-      subject,
-    )}&body=${encodeURIComponent(body)}`;
-    setIsOpen(false);
+    try {
+      const response = await fetch("/api/inquiries", {
+        body: JSON.stringify({
+          businessName,
+          email,
+          itemName,
+          kind,
+          message,
+          name,
+          phone,
+          quantity,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+      const result = (await response.json()) as { message?: string };
+
+      if (!response.ok) {
+        throw new Error(result.message || "The message could not be sent.");
+      }
+
+      event.currentTarget.reset();
+      setStatus("success");
+      setFeedback(result.message || "Your message has been sent.");
+    } catch (error) {
+      setStatus("error");
+      setFeedback(
+        error instanceof Error
+          ? error.message
+          : "The message could not be sent. Please try again.",
+      );
+    }
   }
 
   return (
@@ -75,7 +99,7 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
       </button>
 
       {isOpen ? (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsOpen(false)}>
+        <div className="modal-backdrop" role="presentation" onMouseDown={closeModal}>
           <section
             aria-labelledby={dialogTitleId}
             aria-modal="true"
@@ -92,7 +116,7 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
                 aria-label="Close inquiry form"
                 className="inquiry-modal__close"
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={closeModal}
               >
                 X
               </button>
@@ -151,15 +175,25 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
               <div className="inquiry-form__actions">
                 <button
                   className="cta cta--ghost inquiry-form__cancel"
+                  disabled={status === "sending"}
                   type="button"
-                  onClick={() => setIsOpen(false)}
+                  onClick={closeModal}
                 >
                   Cancel
                 </button>
-                <button className="cta cta--hot inquiry-form__send" type="submit">
-                  Send Email
+                <button
+                  className="cta cta--hot inquiry-form__send"
+                  disabled={status === "sending"}
+                  type="submit"
+                >
+                  {status === "sending" ? "Sending..." : "Send Email"}
                 </button>
               </div>
+              {feedback ? (
+                <p className={`inquiry-form__feedback inquiry-form__feedback--${status}`}>
+                  {feedback}
+                </p>
+              ) : null}
             </form>
           </section>
         </div>

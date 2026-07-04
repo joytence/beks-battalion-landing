@@ -162,6 +162,12 @@ a {
   transform: translateY(1px);
 }
 
+.cta:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+  opacity: 0.68;
+}
+
 .cta--hot:active,
 .cta--hot:focus-visible {
   color: var(--pink);
@@ -648,6 +654,25 @@ a {
 .inquiry-form__cancel,
 .inquiry-form__send {
   width: 100%;
+}
+
+.inquiry-form__feedback {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.inquiry-form__feedback--success {
+  color: #1b1200;
+  background: rgba(255, 207, 90, 0.92);
+}
+
+.inquiry-form__feedback--error {
+  color: #ffdce7;
+  background: rgba(255, 31, 120, 0.14);
+  border: 1px solid rgba(255, 31, 120, 0.36);
 }
 
 .hero__copy {
