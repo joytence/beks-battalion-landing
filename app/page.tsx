@@ -72,7 +72,7 @@ const sponsors = [
     price: "$2,500",
     items: [
       "Logo on all promotional materials",
-      "10 SVIP tickets included",
+      "10 SVIP guest passes included",
       "Stage recognition during the event",
       "Booth or display space",
       "Social media promotion before and after",
@@ -85,7 +85,7 @@ const sponsors = [
     price: "$1,500",
     items: [
       "Logo on posters and social media",
-      "VIP tickets included",
+      "6 VIP tickets included",
       "Stage recognition",
       "Booth or display space",
       "Preferred sponsor placement",
@@ -98,7 +98,7 @@ const sponsors = [
     price: "$750",
     items: [
       "Logo on selected promotional materials",
-      "VIP tickets included",
+      "3 VIP tickets included",
       "Social media shout-out",
       "Supporter recognition",
       "Budget-friendly entry point",
