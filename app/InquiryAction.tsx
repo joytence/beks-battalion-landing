@@ -45,12 +45,14 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
     const email = formData.get("email")?.toString().trim() || "";
     const phone = formData.get("phone")?.toString().trim() || "";
     const quantity = formData.get("quantity")?.toString().trim() || "";
+    const businessName = formData.get("businessName")?.toString().trim() || "";
     const message = formData.get("message")?.toString().trim() || "";
     const subject = `Beks Battalion ${inquiryLabel} - ${itemName}`;
     const body = [
       `Inquiry Type: ${inquiryLabel}`,
       `Selected Option: ${itemName}`,
       ...(kind === "ticket" ? [`Ticket Quantity: ${quantity || "Not provided"}`] : []),
+      ...(kind === "sponsor" ? [`Business Name: ${businessName || "Not provided"}`] : []),
       "",
       `Name: ${name}`,
       `Email: ${email}`,
@@ -123,6 +125,17 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
                     placeholder="How many tickets?"
                     required
                     type="number"
+                  />
+                </label>
+              ) : null}
+              {kind === "sponsor" ? (
+                <label>
+                  Business Name
+                  <input
+                    name="businessName"
+                    placeholder="Your business name"
+                    required
+                    type="text"
                   />
                 </label>
               ) : null}
