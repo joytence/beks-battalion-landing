@@ -56,7 +56,6 @@ const ticketTiers = [
     perks: [
       "Reserved Mid-House Seating",
       "Reserved seating",
-      "Exclusive merch bundle",
     ],
   },
   {
