@@ -1143,15 +1143,33 @@ a {
   }
 
   .modal-backdrop {
-    align-items: center;
-    padding: 8px;
+    z-index: 999;
+    align-items: end;
+    padding: 92px 10px max(10px, env(safe-area-inset-bottom));
   }
 
   .inquiry-modal {
+    position: relative;
     width: min(100%, 420px);
-    max-height: calc(100svh - 16px);
-    padding: 16px;
-    border-radius: 18px;
+    max-height: calc(100svh - 112px);
+    padding: 20px 16px 16px;
+    border-radius: 24px 24px 18px 18px;
+    box-shadow:
+      0 -24px 70px rgba(0, 0, 0, 0.82),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+
+  .inquiry-modal::before {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    width: 46px;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 207, 90, 0.62);
+    box-shadow: 0 0 14px rgba(255, 207, 90, 0.18);
+    transform: translateX(-50%);
   }
 
   .inquiry-modal__header {
