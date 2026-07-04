@@ -53,15 +53,19 @@ const ticketTiers = [
     price: "125$",
     tone: "orange",
     featured: true,
-    perks: ["Priority entry", "Reserved seating", "Exclusive merch bundle"],
+    perks: [
+      "Reserved Mid-House Seating",
+      "Reserved seating",
+      "Exclusive merch bundle",
+    ],
   },
   {
-    name: "GA",
+    name: "General Admission",
     stars: 2,
     price: "100$",
     tone: "green",
     featured: false,
-    perks: ["General admission", "Open seating", "Food and drink available"],
+    perks: ["Open seating", "Food and drink available", "Best value entry"],
   },
 ];
 
@@ -272,7 +276,13 @@ export default function Page() {
                     }`}
                   >
                     <TicketStars count={tier.stars} />
-                    <h3 className="ticket-card__name">{tier.name}</h3>
+                    <h3
+                      className={`ticket-card__name ${
+                        tier.name === "General Admission" ? "ticket-card__name--long" : ""
+                      }`}
+                    >
+                      {tier.name}
+                    </h3>
                     <div className="ticket-card__price">{tier.price}</div>
                     <ul className="ticket-card__perks">
                       {tier.perks.map((perk) => (

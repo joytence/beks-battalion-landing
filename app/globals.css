@@ -496,6 +496,12 @@ a {
   align-self: center;
 }
 
+.ticket-card__name--long {
+  font-size: clamp(2.35rem, 3.35vw, 3.45rem);
+  line-height: 0.84;
+  letter-spacing: 0.08em;
+}
+
 .ticket-card__price {
   position: relative;
   z-index: 1;
@@ -1378,6 +1384,11 @@ a {
 
   .ticket-card__price {
     font-size: 3.4rem;
+  }
+
+  .ticket-card__name--long {
+    font-size: 2.4rem;
+    letter-spacing: 0.07em;
   }
 }
 
