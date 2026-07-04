@@ -72,7 +72,7 @@ const sponsors = [
     price: "$2,500",
     items: [
       "Logo on all promotional materials",
-      "VIP tickets included",
+      "10 SVIP tickets included",
       "Stage recognition during the event",
       "Booth or display space",
       "Social media promotion before and after",
