@@ -44,11 +44,13 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
     const name = formData.get("name")?.toString().trim() || "";
     const email = formData.get("email")?.toString().trim() || "";
     const phone = formData.get("phone")?.toString().trim() || "";
+    const quantity = formData.get("quantity")?.toString().trim() || "";
     const message = formData.get("message")?.toString().trim() || "";
     const subject = `Beks Battalion ${inquiryLabel} - ${itemName}`;
     const body = [
       `Inquiry Type: ${inquiryLabel}`,
       `Selected Option: ${itemName}`,
+      ...(kind === "ticket" ? [`Ticket Quantity: ${quantity || "Not provided"}`] : []),
       "",
       `Name: ${name}`,
       `Email: ${email}`,
@@ -112,6 +114,18 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
                 Phone
                 <input name="phone" placeholder="Optional" type="tel" />
               </label>
+              {kind === "ticket" ? (
+                <label>
+                  Quantity
+                  <input
+                    min="1"
+                    name="quantity"
+                    placeholder="How many tickets?"
+                    required
+                    type="number"
+                  />
+                </label>
+              ) : null}
               <label aria-labelledby={messageLabelId}>
                 <span id={messageLabelId}>Message</span>
                 <textarea
