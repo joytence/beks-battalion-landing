@@ -169,6 +169,7 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
           message,
           name,
           phone,
+          sourceUrl: window.location.href,
           quantity,
         }),
         headers: {

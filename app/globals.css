@@ -302,6 +302,29 @@ a {
   z-index: 1;
 }
 
+.page--lineup {
+  position: relative;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(255, 31, 120, 0.12), transparent 18%),
+    radial-gradient(circle at 82% 14%, rgba(255, 122, 0, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(9, 9, 9, 0.98), rgba(5, 5, 5, 0.98));
+}
+
+.page--lineup::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.38) 72%, rgba(0, 0, 0, 0.96)),
+    radial-gradient(circle at 50% 50%, rgba(255, 198, 54, 0.06), transparent 42%);
+}
+
+.page--lineup > .page__inner {
+  position: relative;
+  z-index: 1;
+}
+
 .hero {
   position: relative;
   display: flex;
@@ -755,6 +778,147 @@ a {
   color: var(--gold-soft);
 }
 
+.lineup {
+  display: grid;
+  gap: 24px;
+}
+
+.lineup__intro {
+  max-width: 860px;
+}
+
+.lineup__intro p {
+  margin: 0;
+  max-width: 720px;
+  color: rgba(245, 241, 232, 0.78);
+  line-height: 1.6;
+  font-size: 1.02rem;
+}
+
+.lineup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.lineup__intro p {
+  margin: 0;
+  max-width: 720px;
+  color: rgba(245, 241, 232, 0.78);
+  line-height: 1.6;
+  font-size: 1.02rem;
+}
+
+.lineup-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 310px;
+  padding: 20px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  border-radius: 24px;
+  border: 1px solid rgba(245, 179, 33, 0.2);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 22px 56px rgba(0, 0, 0, 0.48);
+}
+
+.lineup-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.22), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 28%);
+  opacity: 0.82;
+}
+
+.lineup-card--gold {
+  background:
+    linear-gradient(180deg, rgba(255, 211, 77, 0.96), rgba(255, 180, 20, 0.92) 42%, rgba(113, 68, 0, 0.98)),
+    #ffb414;
+  color: #fff;
+}
+
+.lineup-card--orange {
+  background:
+    linear-gradient(180deg, rgba(255, 154, 31, 0.98), rgba(255, 105, 0, 0.92) 42%, rgba(116, 39, 0, 0.98)),
+    #ff6900;
+  color: #fff4e9;
+}
+
+.lineup-card--pink {
+  background:
+    linear-gradient(180deg, rgba(255, 31, 120, 0.9), rgba(177, 30, 79, 0.95) 42%, rgba(58, 6, 23, 0.98)),
+    #ff1f78;
+  color: #fff0f6;
+  box-shadow:
+    0 0 0 1px rgba(255, 31, 120, 0.08),
+    0 18px 50px rgba(255, 31, 120, 0.12),
+    0 22px 56px rgba(0, 0, 0, 0.48);
+}
+
+.lineup-card__badge {
+  position: relative;
+  z-index: 1;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.lineup-card__role {
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.lineup-card h3 {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: clamp(2.8rem, 4vw, 4rem);
+  line-height: 0.88;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lineup-card p {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  max-width: 28ch;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: inherit;
+  opacity: 0.9;
+}
+
+.lineup-card h3,
+.lineup-card__role,
+.lineup-card__badge,
+.lineup-card p {
+  position: relative;
+  z-index: 1;
+}
+
 .hero__title {
   margin: 0;
   font-family: var(--font-bebas-neue), sans-serif;
@@ -1025,6 +1189,13 @@ a {
   text-align: left;
 }
 
+.sponsor-cta__logos {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
 .sponsor-cta__current {
   font-family: var(--font-bebas-neue), sans-serif;
   font-size: clamp(1.5rem, 2.4vw, 2.1rem);
@@ -1036,8 +1207,8 @@ a {
 
 .sponsor-cta__logo {
   display: block;
-  width: min(96px, 100%);
-  max-width: 96px;
+  width: min(108px, 100%);
+  max-width: 108px;
   height: auto;
   border-radius: 10px;
   overflow: hidden;
@@ -1151,6 +1322,7 @@ a {
   }
 
   .ticket-poster__tiers,
+  .lineup-grid,
   .sponsor-grid {
     grid-template-columns: 1fr;
   }
@@ -1351,6 +1523,18 @@ a {
 
   .hero__actions {
     gap: 10px;
+  }
+
+  .lineup__intro p {
+    font-size: 0.98rem;
+  }
+
+  .lineup-card {
+    min-height: 0;
+  }
+
+  .lineup-card h3 {
+    font-size: clamp(2.5rem, 10vw, 3.4rem);
   }
 
   .sponsor-cta {

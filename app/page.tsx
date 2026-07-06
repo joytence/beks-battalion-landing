@@ -9,6 +9,7 @@ const marqueeItems = [
 ];
 
 const topbarCtas = [
+  { href: "#lineup", label: "ARTIST LINE UP", tone: "ghost" },
   { href: "#tickets", label: "Ticket Info", tone: "hot" },
   { href: "#sponsors", label: "Sponsor Info", tone: "ghost" },
 ];
@@ -19,6 +20,30 @@ const schedule = [
   { time: "7:00 PM", desc: "Beks Battalion live performance" },
   { time: "9:00 PM", desc: "Show close and send-off" },
 ];
+
+const lineup = [
+  {
+    name: "Lassy Marquez",
+    role: "Opening Spark",
+    badge: "LM",
+    tone: "gold",
+    blurb: "Quick wit, crowd charm, and an easy, high-energy opening set.",
+  },
+  {
+    name: "Chad Kinis",
+    role: "Headliner Energy",
+    badge: "CK",
+    tone: "orange",
+    blurb: "Big laughs, bold personality, and the pace that keeps the room up.",
+  },
+  {
+    name: "MC Muah",
+    role: "Host / Crowd Driver",
+    badge: "MM",
+    tone: "pink",
+    blurb: "Keeps the night flowing while keeping the audience locked in.",
+  },
+] as const;
 
 function TicketStars({ count }: { count: number }) {
   return (
@@ -55,16 +80,16 @@ const ticketTiers = [
     featured: true,
     perks: [
       "Reserved Mid-House Seating",
-      "Reserved seating",
+      "Great Balance of View & Value",
     ],
   },
   {
     name: "General Admission",
-    stars: 2,
+    stars: 0,
     price: "100$",
     tone: "green",
     featured: false,
-    perks: ["Open seating", "Food and drink available", "Best value entry"],
+    perks: ["Affordable Reserved Seating", "Best Valued Entry"],
   },
 ];
 
@@ -259,6 +284,33 @@ export default function Page() {
         </div>
       </section>
 
+      <section className="page page--lineup" id="lineup">
+        <div className="page__inner lineup">
+          <div className="lineup__intro">
+            <SectionTag>Line Up Page</SectionTag>
+            <h2 className="section-title">Meet The Artists</h2>
+            <p>
+              Three standout performers bringing the energy, the crowd work, and the big laughs for
+              Beks Battalion.
+            </p>
+          </div>
+
+          <div className="lineup-grid">
+            {lineup.map((artist) => (
+              <article
+                key={artist.name}
+                className={`card lineup-card lineup-card--${artist.tone}`}
+              >
+                <div className="lineup-card__badge">{artist.badge}</div>
+                <div className="lineup-card__role">{artist.role}</div>
+                <h3>{artist.name}</h3>
+                <p>{artist.blurb}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="page page--tickets" id="tickets">
         <div className="page__inner">
           <SectionTag>Ticket Page</SectionTag>
@@ -274,7 +326,7 @@ export default function Page() {
                       tier.featured ? "ticket-card--featured" : ""
                     }`}
                   >
-                    <TicketStars count={tier.stars} />
+                    {tier.stars > 0 ? <TicketStars count={tier.stars} /> : null}
                     <h3
                       className={`ticket-card__name ${
                         tier.name === "General Admission" ? "ticket-card__name--long" : ""
@@ -351,11 +403,18 @@ export default function Page() {
           <div className="panel sponsor-cta">
             <div className="sponsor-cta__stack">
               <div className="sponsor-cta__current">Our Current Sponsor</div>
-              <img
-                className="sponsor-cta__logo"
-                src="/assets/john-deleon-enterprize.jpg"
-                alt="John De Leon Enterprise"
-              />
+              <div className="sponsor-cta__logos" aria-label="Current sponsor logos">
+                <img
+                  className="sponsor-cta__logo"
+                  src="/assets/john-deleon-enterprize.jpg"
+                  alt="John De Leon Enterprise"
+                />
+                <img
+                  className="sponsor-cta__logo"
+                  src="/assets/manila-bistro-logo.jpg"
+                  alt="Manila Bistro"
+                />
+              </div>
             </div>
             <a className="cta cta--hot" href="#hero">
               Back to Top

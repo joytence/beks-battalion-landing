@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getMetaTrackingContext, sendMetaCapiEvent } from "@/lib/meta-capi";
 
 const recipient = "joy.tence@joystageproductions.com";
 const sender = "Joy Stage Productions <inquiries@joystageproductions.com>";
@@ -14,6 +15,7 @@ type InquiryPayload = {
   name?: unknown;
   phone?: unknown;
   quantity?: unknown;
+  sourceUrl?: unknown;
 };
 
 function clean(value: unknown) {
@@ -68,6 +70,7 @@ export async function POST(request: Request) {
   const quantity = clean(payload.quantity);
   const businessName = clean(payload.businessName);
   const message = clean(payload.message);
+  const sourceUrl = clean(payload.sourceUrl) || request.headers.get("referer") || "";
 
   if (kind !== "ticket" && kind !== "sponsor") {
     return NextResponse.json({ message: "Please choose a valid inquiry type." }, { status: 400 });
@@ -164,5 +167,31 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ message: "Your message has been sent." });
+  const metaTrackingContext = getMetaTrackingContext(request);
+  const metaEvent = await sendMetaCapiEvent({
+    ...metaTrackingContext,
+    customData: {
+      content_category: kind,
+      content_name: itemName,
+      inquiry_type: inquiryLabel,
+      lead_type: kind,
+      num_items: quantity ? Number(quantity) : undefined,
+      quantity: quantity ? Number(quantity) : undefined,
+      currency: "USD",
+    },
+    email,
+    eventName: "Lead",
+    eventSourceUrl:
+      sourceUrl || "https://www.joystageproductions.com",
+    phone,
+    testEventCode: process.env.META_TEST_EVENT_CODE?.trim() || undefined,
+  });
+
+  if (!metaEvent.ok) {
+    console.error("Meta CAPI inquiry event error:", metaEvent.reason);
+  }
+
+  return NextResponse.json({
+    message: "Your message has been sent.",
+  });
 }
