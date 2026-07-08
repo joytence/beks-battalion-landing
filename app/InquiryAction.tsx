@@ -150,8 +150,9 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
     event.preventDefault();
     setStatus("sending");
     setFeedback("");
+    const form = event.currentTarget;
 
-    const formData = new FormData(event.currentTarget);
+    const formData = new FormData(form);
     const name = formData.get("name")?.toString().trim() || "";
     const email = formData.get("email")?.toString().trim() || "";
     const phone = formData.get("phone")?.toString().trim() || "";
@@ -183,9 +184,12 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
         throw new Error(result.message || "The message could not be sent.");
       }
 
-      event.currentTarget.reset();
+      form.reset();
       setStatus("success");
       setFeedback(result.message || "Your message has been sent.");
+      window.setTimeout(() => {
+        closeModal();
+      }, 900);
     } catch (error) {
       setStatus("error");
       setFeedback(
