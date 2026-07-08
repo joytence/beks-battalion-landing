@@ -189,6 +189,15 @@ export async function POST(request: Request) {
 
   if (!metaEvent.ok) {
     console.error("Meta CAPI inquiry event error:", metaEvent.reason);
+  } else if (metaEvent.skipped) {
+    console.warn("Meta CAPI inquiry event skipped:", metaEvent.reason);
+  } else {
+    console.info("Meta CAPI inquiry event sent:", {
+      eventName: "Lead",
+      inquiryType: kind,
+      itemName,
+      testEventEnabled: Boolean(process.env.META_TEST_EVENT_CODE?.trim()),
+    });
   }
 
   return NextResponse.json({
