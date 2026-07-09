@@ -1,15 +1,17 @@
+import type { CSSProperties } from "react";
+
 import { InquiryAction } from "./InquiryAction";
 
 const marqueeItems = [
   "Beks Battalion",
   "Coming to San Diego",
   "September 13, 2026",
-  "Live Comedy Event",
+  "@ OTAY RANCH HIGH SCHOOL",
   "Laugh and Enjoy",
 ];
 
 const topbarCtas = [
-  { href: "#lineup", label: "ARTIST LINE UP", tone: "ghost" },
+  { href: "#lineup", label: "Special Performers", tone: "ghost" },
   { href: "#tickets", label: "Ticket Info", tone: "hot" },
   { href: "#sponsors", label: "Sponsor Info", tone: "ghost" },
 ];
@@ -23,25 +25,36 @@ const schedule = [
 
 const lineup = [
   {
-    name: "Lassy Marquez",
-    role: "Opening Spark",
-    badge: "LM",
+    name: "Joy Tence",
+    role: "Producer/Performer",
+    badge: "JT",
     tone: "gold",
-    blurb: "Quick wit, crowd charm, and an easy, high-energy opening set.",
+    image: "/assets/joy-tence.jpeg",
+    position: "center center",
   },
   {
-    name: "Chad Kinis",
-    role: "Headliner Energy",
-    badge: "CK",
+    name: "Lloyd Guilalas",
+    role: "MC/Performer",
+    badge: "LG",
+    tone: "gold",
+    image: "/assets/llyod-guilalas.jpg",
+    position: "center center",
+  },
+  {
+    name: "Jeane Moss",
+    role: "Special Performers",
+    badge: "JM",
     tone: "orange",
-    blurb: "Big laughs, bold personality, and the pace that keeps the room up.",
+    image: "/assets/geane-moss.jpg",
+    position: "center center",
   },
   {
-    name: "MC Muah",
-    role: "Host / Crowd Driver",
-    badge: "MM",
+    name: "Robin Hamby",
+    role: "Special Performers",
+    badge: "RH",
     tone: "pink",
-    blurb: "Keeps the night flowing while keeping the audience locked in.",
+    image: "/assets/robin-hamby.jpg",
+    position: "center center",
   },
 ] as const;
 
@@ -249,6 +262,8 @@ export default function Page() {
           <div className="hero__eventline">
             <div className="hero__eventline-script">Live!</div>
             <div className="hero__eventline-title">IN SAN DIEGO</div>
+            <div className="hero__eventline-date">SEP 13, 2026</div>
+            <div className="hero__eventline-venue">@ Otay Ranch High School, Chula Vista.</div>
           </div>
 
           <div className="hero__copy">
@@ -259,15 +274,6 @@ export default function Page() {
               </span>
               <span className="hero__title-secondary">The Laff Control Project</span>
             </h1>
-
-            <div className="hero__actions">
-              <a className="cta cta--hot" href="#tickets">
-                Ticket Info
-              </a>
-              <a className="cta cta--ghost" href="#sponsors">
-                Sponsor Info
-              </a>
-            </div>
           </div>
           <div className="hero__logo-stack" aria-label="Joy Stage and StageNova logos">
             <img
@@ -288,10 +294,10 @@ export default function Page() {
         <div className="page__inner lineup">
           <div className="lineup__intro">
             <SectionTag>Line Up Page</SectionTag>
-            <h2 className="section-title">Meet The Artists</h2>
+            <h2 className="section-title">Special Performers</h2>
             <p>
-              Three standout performers bringing the energy, the crowd work, and the big laughs for
-              Beks Battalion.
+              Featured performers bringing extra personality, presence, and energy to Beks
+              Battalion.
             </p>
           </div>
 
@@ -299,12 +305,16 @@ export default function Page() {
             {lineup.map((artist) => (
               <article
                 key={artist.name}
-                className={`card lineup-card lineup-card--${artist.tone}`}
+                className={`card lineup-card lineup-card--photo lineup-card--${artist.tone}`}
+                tabIndex={0}
+                style={{
+                  "--lineup-image": `url(${artist.image})`,
+                  "--lineup-position": artist.position,
+                } as CSSProperties}
               >
                 <div className="lineup-card__badge">{artist.badge}</div>
                 <div className="lineup-card__role">{artist.role}</div>
                 <h3>{artist.name}</h3>
-                <p>{artist.blurb}</p>
               </article>
             ))}
           </div>
@@ -325,6 +335,7 @@ export default function Page() {
                     className={`ticket-card ticket-card--${tier.tone} ${
                       tier.featured ? "ticket-card--featured" : ""
                     }`}
+                    tabIndex={0}
                   >
                     {tier.stars > 0 ? <TicketStars count={tier.stars} /> : null}
                     <h3
@@ -372,7 +383,7 @@ export default function Page() {
       <section className="page" id="sponsors">
         <div className="page__inner sponsors">
           <div>
-            <SectionTag>Sponsor Page</SectionTag>
+            <SectionTag>Sponsors Page</SectionTag>
             <h2 className="section-title">Partner With The Show</h2>
           </div>
 
@@ -381,6 +392,7 @@ export default function Page() {
               <article
                 key={sponsor.tier}
                 className={`card sponsor-card ${sponsor.featured ? "sponsor-card--featured" : ""}`}
+                tabIndex={0}
               >
                 <div className="sponsor-card__tier">{sponsor.tier}</div>
                 <h3>{sponsor.title}</h3>
@@ -402,7 +414,7 @@ export default function Page() {
 
           <div className="panel sponsor-cta">
             <div className="sponsor-cta__stack">
-              <div className="sponsor-cta__current">Our Current Sponsor</div>
+              <div className="sponsor-cta__current">Our Current Sponsors</div>
               <div className="sponsor-cta__logos" aria-label="Current sponsor logos">
                 <img
                   className="sponsor-cta__logo"
@@ -413,6 +425,21 @@ export default function Page() {
                   className="sponsor-cta__logo"
                   src="/assets/manila-bistro-logo.jpg"
                   alt="Manila Bistro"
+                />
+                <img
+                  className="sponsor-cta__logo sponsor-cta__logo--mrs-b"
+                  src="/assets/mrs-b-realty.png"
+                  alt="Mrs. B's Realty"
+                />
+                <img
+                  className="sponsor-cta__logo sponsor-cta__logo--valerio"
+                  src="/assets/valerio-logo.jpg"
+                  alt="Valerio's Est. 1976"
+                />
+                <img
+                  className="sponsor-cta__logo sponsor-cta__logo--luna"
+                  src="/assets/luna-band-ph.png"
+                  alt="Luna Band PH"
                 />
               </div>
             </div>
@@ -428,6 +455,9 @@ export default function Page() {
           <div>
             <strong className="footer__brand">Joy Stage Productions LLC</strong>
             <div>Event landing page concept for Beks Battalion.</div>
+            <a className="footer__privacy" href="/privacy">
+              Privacy Policy
+            </a>
           </div>
 
           <div className="footer__social" aria-label="Social links">

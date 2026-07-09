@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
+import { hasTrackingConsent } from "./CookieConsent";
 
 type InquiryActionProps = {
   className?: string;
@@ -172,6 +173,7 @@ export function InquiryAction({ className, itemName, kind, label }: InquiryActio
           phone,
           sourceUrl: window.location.href,
           quantity,
+          trackingConsent: hasTrackingConsent(),
         }),
         headers: {
           "Content-Type": "application/json",

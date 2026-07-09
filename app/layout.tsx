@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Bebas_Neue, Space_Grotesk } from "next/font/google";
-import Script from "next/script";
+import { CookieConsent } from "./CookieConsent";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -14,8 +14,6 @@ const bebasNeue = Bebas_Neue({
   subsets: ["latin"],
   variable: "--font-bebas-neue",
 });
-
-const metaPixelId = process.env.META_PIXEL_ID || "2036904920238359";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.joystageproductions.com"),
@@ -51,33 +49,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <Script id="meta-pixel" strategy="beforeInteractive">
-          {`
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${metaPixelId}');
-            fbq('track', 'PageView');
-          `}
-        </Script>
-      </head>
       <body className={`${spaceGrotesk.variable} ${bebasNeue.variable}`}>
-        <noscript>
-          <img
-            alt=""
-            height="1"
-            width="1"
-            style={{ display: "none" }}
-            src={`https://www.facebook.com/tr?id=${metaPixelId}&ev=PageView&noscript=1`}
-          />
-        </noscript>
         {children}
+        <CookieConsent />
       </body>
     </html>
   );
