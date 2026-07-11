@@ -1322,6 +1322,13 @@ a {
   box-sizing: border-box;
 }
 
+.sponsor-cta__logo--wide {
+  width: min(280px, 100%);
+  max-width: 280px;
+  height: 140px;
+  padding: 10px 14px;
+}
+
 .footer {
   padding: 8px 28px 34px;
 }

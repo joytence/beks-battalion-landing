@@ -25,3 +25,53 @@ Add these in Vercel so the inquiry form can send email and Meta Lead events:
 - `META_TEST_EVENT_CODE` (optional, for Meta test events)
 
 The inquiry form will keep working even if Meta CAPI is unavailable, but the Lead event will only be sent when the Meta token is configured.
+
+## Ticketing draft
+An isolated electronic ticketing flow now lives in these routes:
+
+- `/tickets` - ticket selection and Stripe Checkout handoff
+- `/api/tickets/checkout` - reserved-seat checkout with seat holds and Stripe Checkout
+- `/api/tickets/tier-checkout` - test-only tier checkout without seat assignment
+- `/api/tickets/admin/reassign` - admin-only reserved-seat reassignment endpoint
+- `/tickets/confirmation?session_id=...` - print-ready ticket page after payment
+- `/tickets/verify?ticket=...` - signed QR verification page
+
+Required environment variables for the ticketing flow:
+
+- `DATABASE_URL` (required for reserved-seat checkout, paid seat persistence, and admin reassignment)
+- `TICKET_CHECKOUT_ENABLED=true` (only set this when you want the `/api/tickets/checkout` route to create real Checkout Sessions; default is paused/off)
+- `TICKET_TIER_TEST_CHECKOUT_ENABLED=true` (enables the safer test-only tier checkout route)
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET` (recommended for reliable live fulfillment and post-payment handling)
+- `STRIPE_TAX_ENABLED=true` (optional, enables Stripe Tax on ticket checkout and adds tax on top of the ticket price)
+- `STRIPE_TAX_EVENT_LOCATION_ID` (optional override for a pre-created Stripe performance location; if omitted, the app creates one from the venue address at runtime)
+- `STRIPE_TICKET_TAX_CODE` (optional, defaults to `txcd_50010001` for venue admission tickets)
+- `TICKET_SIGNING_SECRET` (required in production for QR verification signatures)
+- `TICKET_ADMIN_SECRET` (optional, enables the admin reassignment endpoint)
+- `TICKET_HOLD_MINUTES` (optional, defaults to 30 and is clamped to Stripe Checkout’s 30-60 minute seat-hold window)
+- `NEXT_PUBLIC_SITE_URL` (recommended so Stripe success/cancel URLs point to the correct domain)
+
+Notes:
+
+- The landing page is not linked to the ticketing draft yet.
+- Payments are intentionally paused unless `TICKET_CHECKOUT_ENABLED=true` is present.
+- The safer tier-only test flow requires `TICKET_TIER_TEST_CHECKOUT_ENABLED=true` and a Stripe test key such as `sk_test_...` or `rk_test_...`.
+- Stripe Tax is gated behind `STRIPE_TAX_ENABLED=true` so checkout does not fail before tax registrations are configured in Stripe.
+- The current event performance location is `1250 Olympic Parkway, Chula Vista, CA 91913, US`, and ticket tax is configured as exclusive so tax is added on top of the listed price.
+- Reserved-seat checkout now requires Postgres-backed seat holds, fulfilled tickets, and webhook reconciliation before live payments.
+- The admin reassignment route expects either `Authorization: Bearer <TICKET_ADMIN_SECRET>` or `X-Ticket-Admin-Secret: <TICKET_ADMIN_SECRET>`.
+- The admin reassignment payload shape is:
+
+```json
+{
+  "actorLabel": "Joy Stage Admin",
+  "checkoutSessionId": "cs_live_or_test_...",
+  "ticketIndex": 1,
+  "newSeatLabel": "SA2-4",
+  "notes": "Manual move for VIP guest"
+}
+```
+
+- This version verifies paid Stripe sessions and generates signed QR ticket links, and reserved-seat confirmations now read current seat assignments from the database.
+- Live Stripe webhook endpoint path: `/api/tickets/webhook`
+- Subscribe the webhook to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`.

@@ -1,0 +1,246 @@
+import type { Metadata } from "next";
+import QRCode from "qrcode";
+import { PrintTicketButton } from "../PrintTicketButton";
+import styles from "../ticketing.module.css";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { getOrderTicketsByCheckoutSessionId, isTicketingDatabaseConfigured } from "@/lib/ticketing-store";
+import {
+  createSignedTicketToken,
+  createTicketCode,
+  eventDetails,
+  formatCurrency,
+  formatEventDate,
+  getCheckoutFlow,
+  getSiteUrl,
+  getTicketAssignmentFieldLabel,
+  getTicketAssignmentLabel,
+  getTicketTierById,
+  parseSeatLabels,
+} from "@/lib/ticketing";
+
+export const metadata: Metadata = {
+  title: "Ticket Confirmation | Joy Stage Productions",
+  description: "Printable electronic tickets with QR verification for Beks Battalion.",
+};
+
+type ConfirmationPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+async function buildQrMarkup(value: string) {
+  return QRCode.toString(value, {
+    color: {
+      dark: "#111111",
+      light: "#0000",
+    },
+    errorCorrectionLevel: "M",
+    margin: 0,
+    type: "svg",
+    width: 180,
+  });
+}
+
+export default async function TicketConfirmationPage({
+  searchParams,
+}: ConfirmationPageProps) {
+  const params = (await searchParams) || {};
+  const sessionId = typeof params.session_id === "string" ? params.session_id : "";
+
+  if (!isStripeConfigured()) {
+    return (
+      <main className={styles.page}>
+        <section className={styles.statusCard}>
+          <div className={styles.statusEyebrow}>Stripe setup required</div>
+          <h1 className={styles.statusTitle}>Checkout is not configured yet</h1>
+          <p className={styles.statusLead}>
+            Add `STRIPE_SECRET_KEY` before using the confirmation route.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  if (!sessionId) {
+    return (
+      <main className={styles.page}>
+        <section className={styles.statusCard}>
+          <div className={styles.statusEyebrow}>Missing session</div>
+          <h1 className={styles.statusTitle}>No checkout session was provided</h1>
+          <p className={styles.statusLead}>
+            Return to the ticket page and start checkout again.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  const stripe = getStripe();
+  const session = await stripe.checkout.sessions.retrieve(sessionId);
+  const checkoutFlow = getCheckoutFlow(session.metadata?.checkout_flow);
+  const ticketTierId = session.metadata?.ticket_tier_id || "";
+  const seatLabels = parseSeatLabels(session.metadata?.seat_labels || "");
+  const quantity = seatLabels.length || Number(session.metadata?.ticket_quantity || "0");
+  const tier = getTicketTierById(ticketTierId);
+
+  if (session.payment_status !== "paid" || !tier || quantity < 1) {
+    return (
+      <main className={styles.page}>
+        <section className={styles.statusCard}>
+          <div className={styles.statusEyebrow}>Payment incomplete</div>
+          <h1 className={styles.statusTitle}>Ticket issuance is not available yet</h1>
+          <p className={styles.statusLead}>
+            This session does not have a paid ticket order attached to it.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  const purchaserName = session.customer_details?.name?.trim() || "Guest";
+  const purchaserEmail = session.customer_details?.email?.trim() || "";
+  const currency = session.currency || "usd";
+  const amountTotal = session.amount_total || tier.priceCents * quantity;
+  const siteUrl = getSiteUrl();
+  const eventDate = formatEventDate(eventDetails.dateIso);
+  const assignmentFieldLabel = getTicketAssignmentFieldLabel(checkoutFlow);
+  const persistedTickets =
+    isTicketingDatabaseConfigured() && checkoutFlow === "reserved_seat"
+      ? await getOrderTicketsByCheckoutSessionId(session.id)
+      : [];
+
+  const tickets = await Promise.all(
+    Array.from({ length: quantity }).map(async (_, index) => {
+      const ticketIndex = index + 1;
+      const persistedTicket = persistedTickets.find((ticket) => ticket.ticketIndex === ticketIndex);
+      const assignmentLabel = getTicketAssignmentLabel(
+        tier.name,
+        persistedTicket?.seatLabel || seatLabels[index] || "Unassigned",
+        checkoutFlow,
+      );
+      const token = createSignedTicketToken({
+        amountTotal,
+        currency,
+        eventSlug: eventDetails.slug,
+        issuedAt: session.created,
+        purchaserEmail,
+        purchaserName,
+        quantity,
+        seatLabel: assignmentLabel,
+        sessionId: session.id,
+        ticketIndex,
+        tierId: tier.id,
+        version: 1,
+      });
+      const verifyUrl = `${siteUrl}/tickets/verify?ticket=${encodeURIComponent(token)}`;
+      const qrMarkup = await buildQrMarkup(verifyUrl);
+
+      return {
+        code: createTicketCode(session.id, ticketIndex),
+        qrMarkup,
+        seatLabel: assignmentLabel,
+        ticketIndex,
+        verifyUrl,
+      };
+    }),
+  );
+
+  return (
+    <main className={styles.page}>
+      <section className={styles.statusCard}>
+        <div className={styles.statusEyebrow}>Paid successfully</div>
+        <h1 className={styles.statusTitle}>Print-Ready Electronic Tickets</h1>
+        <p className={styles.statusLead}>
+          Payment has been confirmed. Each QR code links to a signed verification page for this
+          order.
+        </p>
+        {!session.livemode ? (
+          <div className={styles.notice}>
+            Stripe test mode is active for this order. These tickets are for integration testing
+            only and should not be treated as live event admission.
+          </div>
+        ) : null}
+        <div className={styles.statusActions}>
+          <PrintTicketButton />
+          <a className={styles.secondaryButton} href="/tickets">
+            Buy More Tickets
+          </a>
+        </div>
+      </section>
+
+      <section className={styles.ticketGrid}>
+        {tickets.map((ticket) => (
+          <article key={ticket.code} className={styles.ticketCard}>
+            <div className={styles.ticketBody}>
+              <div className={styles.ticketHeader}>
+                <div>
+                  <div className={styles.ticketLabel}>Joy Stage Productions</div>
+                  <h2 className={styles.ticketTitle}>{eventDetails.name}</h2>
+                </div>
+                <div className={styles.ticketPrice}>{formatCurrency(tier.priceCents, currency)}</div>
+              </div>
+
+              <div className={styles.ticketMeta}>
+                <div className={styles.ticketMetaItem}>
+                  <span className={styles.ticketLabel}>Ticket Code</span>
+                  <strong className={styles.ticketCode}>{ticket.code}</strong>
+                </div>
+                <div className={styles.ticketMetaItem}>
+                  <span className={styles.ticketLabel}>Ticket Number</span>
+                  <strong>
+                    {ticket.ticketIndex} of {quantity}
+                  </strong>
+                </div>
+                <div className={styles.ticketMetaItem}>
+                  <span className={styles.ticketLabel}>{assignmentFieldLabel}</span>
+                  <strong>{ticket.seatLabel}</strong>
+                </div>
+                <div className={styles.ticketMetaItem}>
+                  <span className={styles.ticketLabel}>Purchaser</span>
+                  <strong>{purchaserName}</strong>
+                </div>
+                <div className={styles.ticketMetaItem}>
+                  <span className={styles.ticketLabel}>Email</span>
+                  <strong>{purchaserEmail || "Collected in Stripe"}</strong>
+                </div>
+                <div className={styles.ticketMetaItem}>
+                  <span className={styles.ticketLabel}>Tier</span>
+                  <strong>{tier.name}</strong>
+                </div>
+                <div className={styles.ticketMetaItem}>
+                  <span className={styles.ticketLabel}>Order Total</span>
+                  <strong>{formatCurrency(amountTotal, currency)}</strong>
+                </div>
+                <div className={styles.ticketMetaItem}>
+                  <span className={styles.ticketLabel}>Date</span>
+                  <strong>{eventDate}</strong>
+                </div>
+                <div className={styles.ticketMetaItem}>
+                  <span className={styles.ticketLabel}>Venue</span>
+                  <strong>{eventDetails.venue}</strong>
+                </div>
+              </div>
+
+              <p className={styles.ticketNotes}>
+                {checkoutFlow === "tier_test"
+                  ? "This test-only ticket confirms the Stripe payment flow and QR verification flow without assigning a reserved seat."
+                  : "Present this ticket at the door. Scanning the QR code opens a signed verification page that confirms the paid Stripe session for this ticket order."}
+              </p>
+            </div>
+
+            <div className={styles.qrPanel}>
+              <div
+                className={styles.qrFrame}
+                dangerouslySetInnerHTML={{ __html: ticket.qrMarkup }}
+              />
+              <div className={styles.qrCaption}>
+                Scan to verify this ticket.
+                <br />
+                Ref: {ticket.code}
+              </div>
+            </div>
+          </article>
+        ))}
+      </section>
+    </main>
+  );
+}

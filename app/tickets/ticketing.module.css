@@ -1,0 +1,1331 @@
+.page {
+  min-height: 100vh;
+  padding: clamp(24px, 4vw, 48px);
+  background:
+    radial-gradient(circle at 10% 8%, rgba(255, 207, 90, 0.16), transparent 26%),
+    radial-gradient(circle at 90% 10%, rgba(255, 31, 120, 0.12), transparent 24%),
+    linear-gradient(180deg, #050505, #0b0907 52%, #050505);
+  color: var(--text);
+}
+
+.heroCard,
+.sectionCard,
+.statusCard,
+.ticketCard,
+.scanCard {
+  border: 1px solid rgba(255, 207, 90, 0.22);
+  border-radius: 28px;
+  background:
+    linear-gradient(135deg, rgba(20, 20, 20, 0.96), rgba(7, 7, 7, 0.92)),
+    rgba(7, 7, 7, 0.9);
+  box-shadow: var(--shadow);
+}
+
+.heroCard,
+.sectionCard,
+.statusCard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 44px);
+}
+
+.sectionCard,
+.statusCard {
+  margin-top: 28px;
+}
+
+.backLink {
+  display: inline-flex;
+  margin-bottom: 20px;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.backActionButton {
+  width: fit-content;
+  text-decoration: none;
+}
+
+.mapPageHeader {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.seatMapOnlyLayout {
+  display: grid;
+  gap: 20px;
+}
+
+.eyebrow,
+.sectionEyebrow,
+.statusEyebrow,
+.summaryLabel,
+.ticketLabel {
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.eyebrow,
+.sectionEyebrow,
+.statusEyebrow {
+  font-size: 0.8rem;
+  color: var(--gold-soft);
+}
+
+.title,
+.sectionTitle,
+.statusTitle,
+.ticketTitle,
+.scanTitle {
+  margin: 0;
+  font-family: var(--font-bebas-neue), sans-serif;
+  line-height: 0.96;
+  text-transform: uppercase;
+}
+
+.title {
+  max-width: 12ch;
+  font-size: clamp(3.5rem, 9vw, 6.2rem);
+  letter-spacing: 0.05em;
+}
+
+.lead {
+  max-width: 62ch;
+  margin: 18px 0 0;
+  color: rgba(245, 241, 232, 0.8);
+  line-height: 1.7;
+}
+
+.eventSummary {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.eventSummary > div,
+.setupBox,
+.notice,
+.error,
+.orderPanel,
+.field,
+.ticketMeta,
+.scanMeta {
+  border-radius: 20px;
+}
+
+.eventSummary > div {
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: grid;
+  gap: 6px;
+}
+
+.summaryLabel,
+.ticketLabel {
+  font-size: 0.72rem;
+  color: rgba(245, 241, 232, 0.56);
+}
+
+.setupBox,
+.notice,
+.error {
+  margin-top: 22px;
+  padding: 16px 18px;
+  line-height: 1.6;
+}
+
+.setupBox,
+.notice {
+  background: rgba(255, 207, 90, 0.08);
+  border: 1px solid rgba(255, 207, 90, 0.2);
+}
+
+.error {
+  background: rgba(255, 31, 120, 0.08);
+  border: 1px solid rgba(255, 31, 120, 0.22);
+}
+
+.sectionHeader {
+  display: grid;
+  gap: 10px;
+}
+
+.sectionTitle {
+  max-width: 14ch;
+  font-size: clamp(2.6rem, 7vw, 4rem);
+  letter-spacing: 0.06em;
+}
+
+.checkoutShell {
+  margin-top: 28px;
+}
+
+.checkoutStack {
+  display: grid;
+  gap: 20px;
+}
+
+.selectorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
+.tierCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 22px;
+  text-align: left;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  cursor: default;
+  overflow: hidden;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.tierCard > * {
+  position: relative;
+  z-index: 1;
+}
+
+.tierCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.35), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 30%);
+  opacity: 0.72;
+}
+
+.tierCard:hover,
+.tierCard:focus-visible {
+  transform: translateY(-4px);
+}
+
+.tierCardSelected {
+  box-shadow:
+    0 22px 48px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.16) inset;
+}
+
+.tierCardGold {
+  background: linear-gradient(180deg, #ffd34d 0%, #ffb414 34%, #8f5600 100%);
+  color: #120b00;
+  border-color: rgba(255, 199, 61, 0.92);
+}
+
+.tierCardOrange {
+  background: linear-gradient(180deg, #ff9a1f 0%, #ff6900 34%, #9a3200 100%);
+  color: #fff4e9;
+  border-color: rgba(255, 164, 64, 0.92);
+}
+
+.tierCardInk {
+  background:
+    linear-gradient(135deg, rgba(20, 20, 20, 0.96), rgba(7, 7, 7, 0.92)),
+    rgba(7, 7, 7, 0.9);
+  color: var(--text);
+}
+
+.tierCardGreen {
+  background: linear-gradient(180deg, #c8ef35 0%, #6db200 38%, #345600 100%);
+  color: #101700;
+  border-color: rgba(214, 255, 91, 0.9);
+}
+
+.tierHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.tierName,
+.tierPrice {
+  font-family: var(--font-bebas-neue), sans-serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tierName {
+  font-size: 2rem;
+}
+
+.tierPrice {
+  font-size: 1.65rem;
+  color: currentColor;
+}
+
+.tierDescription {
+  margin: 14px 0 0;
+  line-height: 1.55;
+}
+
+.tierSection {
+  margin-top: 14px;
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.tierList {
+  margin: 18px 0 0;
+  padding-left: 18px;
+  line-height: 1.6;
+}
+
+.tierCardGold .tierDescription,
+.tierCardGold .tierSection,
+.tierCardGold .tierList {
+  color: rgba(18, 11, 0, 0.84);
+}
+
+.tierCardOrange .tierDescription,
+.tierCardOrange .tierSection,
+.tierCardOrange .tierList {
+  color: rgba(255, 244, 233, 0.88);
+}
+
+.tierCardGreen .tierDescription,
+.tierCardGreen .tierSection,
+.tierCardGreen .tierList {
+  color: rgba(16, 23, 0, 0.84);
+}
+
+.tierCard .tierCardAction {
+  width: 100%;
+  align-self: stretch;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.tierCardFooter {
+  margin-top: auto;
+  display: grid;
+  gap: 12px;
+}
+
+.tierQuantityRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tierQuantityLabel {
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.tierQuantityControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tierQuantityButton {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(12, 12, 12, 0.16);
+  color: currentColor;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+}
+
+.tierQuantityButton:disabled {
+  opacity: 0.5;
+}
+
+.tierQuantityInput {
+  width: 66px;
+  min-height: 38px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(12, 12, 12, 0.12);
+  color: currentColor;
+  font: inherit;
+  text-align: center;
+}
+
+.tierQuantityInput::-webkit-outer-spin-button,
+.tierQuantityInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.tierQuantityInput[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.tierCardCheckoutButton {
+  width: 100%;
+  align-self: stretch;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.tierCardGold .tierCardAction {
+  border-color: rgba(18, 11, 0, 0.26);
+  background: rgba(18, 11, 0, 0.14);
+  color: #120b00;
+}
+
+.tierCardGold .tierQuantityButton,
+.tierCardGold .tierQuantityInput,
+.tierCardGold .tierCardCheckoutButton {
+  border-color: rgba(18, 11, 0, 0.26);
+}
+
+.tierCardGold .tierQuantityButton,
+.tierCardGold .tierQuantityInput {
+  background: rgba(18, 11, 0, 0.12);
+  color: #120b00;
+}
+
+.tierCardGold .tierCardCheckoutButton {
+  background: rgba(18, 11, 0, 0.9);
+  color: #ffe7a9;
+  box-shadow: 0 14px 30px rgba(18, 11, 0, 0.18);
+}
+
+.tierCardOrange .tierCardAction {
+  border-color: rgba(255, 244, 233, 0.34);
+  background: rgba(38, 12, 0, 0.22);
+  color: #fff4e9;
+}
+
+.tierCardOrange .tierQuantityButton,
+.tierCardOrange .tierQuantityInput,
+.tierCardOrange .tierCardCheckoutButton {
+  border-color: rgba(255, 244, 233, 0.32);
+}
+
+.tierCardOrange .tierQuantityButton,
+.tierCardOrange .tierQuantityInput {
+  background: rgba(38, 12, 0, 0.2);
+  color: #fff4e9;
+}
+
+.tierCardOrange .tierCardCheckoutButton {
+  background: rgba(28, 8, 0, 0.88);
+  color: #fff4e9;
+  box-shadow: 0 14px 30px rgba(38, 12, 0, 0.24);
+}
+
+.tierCardGreen .tierCardAction {
+  border-color: rgba(16, 23, 0, 0.28);
+  background: rgba(16, 23, 0, 0.18);
+  color: #101700;
+}
+
+.tierCardGreen .tierQuantityButton,
+.tierCardGreen .tierQuantityInput,
+.tierCardGreen .tierCardCheckoutButton {
+  border-color: rgba(16, 23, 0, 0.28);
+}
+
+.tierCardGreen .tierQuantityButton,
+.tierCardGreen .tierQuantityInput {
+  background: rgba(16, 23, 0, 0.12);
+  color: #101700;
+}
+
+.tierCardGreen .tierCardCheckoutButton {
+  background: rgba(16, 23, 0, 0.88);
+  color: #d8ff74;
+  box-shadow: 0 14px 30px rgba(16, 23, 0, 0.22);
+}
+
+.seatMapCard {
+  scroll-margin-top: 24px;
+  padding: 24px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 207, 90, 0.06), transparent 30%),
+    rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: grid;
+  gap: 18px;
+}
+
+.seatMapClosedCard {
+  scroll-margin-top: 24px;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px dashed rgba(255, 207, 90, 0.26);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 207, 90, 0.04), transparent 28%),
+    rgba(255, 255, 255, 0.02);
+  display: grid;
+  gap: 10px;
+}
+
+.seatMapClosedTitle {
+  margin: 0;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.seatMapClosedNote {
+  margin: 0;
+  max-width: 58ch;
+  color: rgba(245, 241, 232, 0.72);
+  line-height: 1.65;
+}
+
+.seatMapHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.seatMapTitle {
+  margin: 8px 0 0;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.seatLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.seatLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: rgba(245, 241, 232, 0.74);
+}
+
+.seatDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+}
+
+.seatDotAvailable {
+  border: 2px solid #ffd34d;
+  background: transparent;
+}
+
+.seatDotSelected {
+  border: 2px solid #ffd86b;
+  background: linear-gradient(180deg, #ffd34d 0%, #ffb414 100%);
+  box-shadow: 0 0 12px rgba(255, 207, 90, 0.35);
+}
+
+.seatDotSvip {
+  border: 2px solid #ffd34d;
+  background: transparent;
+}
+
+.seatDotVip {
+  border: 2px solid #ff9a1f;
+  background: transparent;
+}
+
+.seatDotGa {
+  border: 2px solid #9cffb4;
+  background: transparent;
+}
+
+.seatDotHeld {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.seatDotMuted {
+  background: rgba(120, 153, 207, 0.7);
+}
+
+.seatMapNote {
+  margin: 0;
+  color: rgba(245, 241, 232, 0.74);
+  line-height: 1.65;
+}
+
+.seatMapToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.seatMapControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.seatMapControlButton {
+  min-width: 44px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 207, 90, 0.24);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--gold-soft);
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.seatMapControlButton:disabled {
+  opacity: 0.45;
+}
+
+.seatMapZoomLabel {
+  min-width: 56px;
+  text-align: center;
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(245, 241, 232, 0.62);
+}
+
+.seatMapSurface {
+  min-width: 0;
+  padding: 16px;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 207, 90, 0.08), transparent 34%),
+    rgba(12, 12, 12, 0.72);
+  border: 1px solid rgba(255, 207, 90, 0.16);
+}
+
+.seatMapViewport {
+  min-width: 0;
+  overflow: auto;
+  padding: 4px 0 10px;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y pinch-zoom;
+  outline: none;
+}
+
+.seatMapViewport:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 207, 90, 0.4);
+  border-radius: 20px;
+}
+
+.mapGestureLayer {
+  width: max-content;
+}
+
+.mapGestureLayerScaled {
+  position: relative;
+  margin: 0 auto;
+}
+
+.venueShell {
+  width: 2080px;
+  margin: 0 auto;
+  padding: 22px 22px 18px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 207, 90, 0.08), transparent 32%),
+    linear-gradient(180deg, rgba(18, 18, 18, 0.98), rgba(8, 8, 8, 0.98)),
+    rgba(10, 10, 10, 0.96);
+  border: 1px solid rgba(255, 207, 90, 0.22);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
+    0 22px 44px rgba(0, 0, 0, 0.34);
+}
+
+.venueShellScaled {
+  margin: 0;
+  transform: scale(var(--map-scale, 1));
+  transform-origin: top left;
+}
+
+.seatChartTop {
+  display: grid;
+  grid-template-columns: max-content repeat(3, max-content) max-content;
+  justify-content: center;
+  gap: 54px;
+  align-items: end;
+  padding: 8px 10px 28px;
+}
+
+.seatBlock {
+  --seat-size: 26px;
+  --seat-gap: 8px;
+  display: grid;
+  gap: 12px;
+  align-content: end;
+  justify-items: center;
+}
+
+.seatBlockLabel {
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1.3rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 220, 122, 0.88);
+}
+
+.seatBlockRows {
+  display: grid;
+  gap: 9px;
+}
+
+.seatBlockRow {
+  display: flex;
+}
+
+.seatBlockRowGap {
+  margin-bottom: 18px;
+}
+
+.seatBlockRowRail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: var(--seat-size);
+  gap: var(--seat-gap);
+  width: max-content;
+}
+
+.seatBlockCenter .seatBlockRowRail {
+  margin: 0 auto;
+}
+
+.seatBlockWingLeft {
+  --seat-size: 20px;
+  --seat-gap: 37px;
+  align-self: end;
+  justify-self: end;
+  padding-bottom: 0;
+}
+
+.seatBlockWingRight {
+  --seat-size: 20px;
+  --seat-gap: 37px;
+  align-self: end;
+  justify-self: start;
+  padding-bottom: 0;
+}
+
+.seatBlockWingLeft .seatBlockRowRail {
+  margin-left: var(--seat-offset);
+}
+
+.seatBlockWingRight .seatBlockRowRail {
+  margin-left: auto;
+  margin-right: var(--seat-offset);
+}
+
+.seatBlockWingLeft .seatBlockRows {
+  gap: 2px;
+  transform: none;
+}
+
+.seatBlockWingRight .seatBlockRows {
+  gap: 2px;
+  transform: none;
+}
+
+.stageBar {
+  display: grid;
+  width: min(1206px, 100%);
+  min-height: 118px;
+  margin: 0 auto;
+  border-radius: 3px;
+  background: transparent;
+  border: 4px solid #ffd34d;
+}
+
+.stageBar span {
+  place-self: center;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: clamp(4rem, 9vw, 6rem);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #ffd34d;
+}
+
+.seatButton {
+  width: var(--seat-size);
+  height: var(--seat-size);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 999px;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: calc(var(--seat-size) * 0.42);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transform: translate(var(--seat-translate-x, 0px), var(--seat-translate-y, 0px));
+  transition:
+    transform 140ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.seatButtonSelectedSvip {
+  border: 2px solid #ffd86b;
+  background: linear-gradient(180deg, #ffd34d 0%, #ffb414 100%);
+  color: #120b00;
+  box-shadow:
+    0 0 0 4px rgba(255, 207, 90, 0.18),
+    0 0 18px rgba(255, 207, 90, 0.42);
+}
+
+.seatButtonSelectedVip {
+  border: 2px solid rgba(255, 164, 64, 0.92);
+  background: linear-gradient(180deg, #ff9a1f 0%, #ff6900 100%);
+  color: #fff4e9;
+  box-shadow:
+    0 0 0 4px rgba(255, 122, 0, 0.18),
+    0 0 18px rgba(255, 122, 0, 0.38);
+}
+
+.seatButtonSelectedGa {
+  border: 2px solid #c6ffd3;
+  background: #23ff62;
+  color: #101700;
+  box-shadow:
+    0 0 0 4px rgba(35, 255, 98, 0.18),
+    0 0 18px rgba(35, 255, 98, 0.42);
+}
+
+.seatButtonSvip {
+  border: 2px solid #ffd34d;
+  background: transparent;
+  color: #ffd34d;
+}
+
+.seatButtonVip {
+  border: 2px solid #ff9a1f;
+  background: transparent;
+  color: #ff9a1f;
+}
+
+.seatButtonGa {
+  border: 2px solid #9cffb4;
+  background: transparent;
+  color: #9cffb4;
+}
+
+.seatButtonHeld {
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.18);
+  cursor: not-allowed;
+}
+
+.seatButtonLocked {
+  border: 2px solid rgba(77, 101, 148, 0.72);
+  filter: grayscale(0.22);
+  opacity: 0.6;
+}
+
+.seatButtonSvip:hover,
+.seatButtonSvip:focus-visible,
+.seatButtonVip:hover,
+.seatButtonVip:focus-visible,
+.seatButtonSelectedSvip:hover,
+.seatButtonSelectedSvip:focus-visible,
+.seatButtonSelectedVip:hover,
+.seatButtonSelectedVip:focus-visible,
+.seatButtonGa:hover,
+.seatButtonGa:focus-visible,
+.seatButtonSelectedGa:hover,
+.seatButtonSelectedGa:focus-visible {
+  transform: translate(var(--seat-translate-x, 0px), calc(var(--seat-translate-y, 0px) - 2px));
+}
+
+.orderPanel {
+  padding: 20px;
+  display: flex;
+  align-items: flex-end;
+  gap: 18px;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.field {
+  display: grid;
+  gap: 10px;
+  min-width: 180px;
+}
+
+.field span {
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 241, 232, 0.62);
+}
+
+.select {
+  min-height: 50px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 207, 90, 0.24);
+  border-radius: 14px;
+  background: rgba(8, 8, 8, 0.9);
+  color: var(--text);
+  font: inherit;
+}
+
+.selectionSummary {
+  display: grid;
+  gap: 10px;
+}
+
+.selectionCount,
+.selectionSeats {
+  display: grid;
+  gap: 4px;
+}
+
+.selectionCount span,
+.selectionSeats span {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 241, 232, 0.56);
+}
+
+.selectionCount strong {
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+  color: var(--gold-soft);
+}
+
+.selectionSeats strong {
+  color: rgba(245, 241, 232, 0.82);
+  word-break: break-word;
+}
+
+.selectionClearButton {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.selectionTier {
+  display: grid;
+  gap: 4px;
+}
+
+.selectionTier span {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 241, 232, 0.56);
+}
+
+.selectionTier strong {
+  color: rgba(245, 241, 232, 0.82);
+}
+
+.paymentStatusBox {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 207, 90, 0.08);
+  border: 1px solid rgba(255, 207, 90, 0.2);
+}
+
+.paymentStatusLabel {
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(245, 241, 232, 0.62);
+}
+
+.paymentStatusCopy {
+  margin: 0;
+  color: rgba(245, 241, 232, 0.82);
+  line-height: 1.55;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1.08rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition:
+    transform 180ms ease,
+    filter 180ms ease,
+    background 180ms ease;
+}
+
+.primaryButton {
+  border: 0;
+  color: #0f0f0f;
+  background: var(--gold-soft);
+  box-shadow: 0 14px 30px rgba(245, 179, 33, 0.24);
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+  opacity: 0.68;
+}
+
+.secondaryButton {
+  border: 1px solid rgba(255, 207, 90, 0.3);
+  color: var(--gold-soft);
+  background: transparent;
+}
+
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+  opacity: 0.68;
+}
+
+.orderPanelAside {
+  align-items: stretch;
+}
+
+.primaryButton:active,
+.secondaryButton:active {
+  transform: translateY(1px);
+}
+
+.statusCard {
+  display: grid;
+  gap: 18px;
+}
+
+.statusEyebrow {
+  color: rgba(245, 241, 232, 0.64);
+}
+
+.statusTitle {
+  font-size: clamp(2.8rem, 7vw, 4.4rem);
+  letter-spacing: 0.06em;
+}
+
+.statusLead {
+  max-width: 58ch;
+  margin: 0;
+  color: rgba(245, 241, 232, 0.78);
+  line-height: 1.7;
+}
+
+.statusActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ticketGrid {
+  max-width: 1200px;
+  margin: 28px auto 0;
+  display: grid;
+  gap: 22px;
+}
+
+.ticketCard {
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 1.2fr 220px;
+  gap: 22px;
+  break-inside: avoid;
+}
+
+.ticketBody {
+  display: grid;
+  gap: 18px;
+}
+
+.ticketHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.ticketTitle {
+  font-size: clamp(2rem, 5vw, 3rem);
+  letter-spacing: 0.06em;
+}
+
+.ticketPrice {
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1.5rem;
+  letter-spacing: 0.08em;
+  color: var(--gold-soft);
+}
+
+.ticketMeta,
+.scanMeta {
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.ticketMetaItem,
+.scanMetaItem {
+  display: grid;
+  gap: 6px;
+}
+
+.ticketCode {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.95rem;
+  color: rgba(245, 241, 232, 0.84);
+}
+
+.ticketNotes {
+  margin: 0;
+  color: rgba(245, 241, 232, 0.72);
+  line-height: 1.65;
+}
+
+.qrPanel {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.qrFrame {
+  width: 180px;
+  height: 180px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.qrFrame :global(svg) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.qrCaption {
+  text-align: center;
+  font-size: 0.84rem;
+  color: rgba(245, 241, 232, 0.68);
+  line-height: 1.45;
+}
+
+.scanCard {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 44px);
+  display: grid;
+  gap: 20px;
+}
+
+.scanCardValid {
+  border-color: rgba(66, 214, 124, 0.32);
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px rgba(66, 214, 124, 0.08) inset;
+}
+
+.scanCardInvalid {
+  border-color: rgba(255, 92, 132, 0.28);
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px rgba(255, 92, 132, 0.08) inset;
+}
+
+.scanTitle {
+  font-size: clamp(2.8rem, 7vw, 4.4rem);
+  letter-spacing: 0.06em;
+}
+
+.scanMeta {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .page {
+    padding-inline: 16px;
+  }
+
+  .eventSummary,
+  .selectorGrid,
+  .ticketMeta,
+  .scanMeta {
+    grid-template-columns: 1fr;
+  }
+
+  .orderPanel,
+  .ticketCard,
+  .ticketHeader,
+  .seatMapHeader {
+    flex-direction: column;
+  }
+
+  .seatLegend {
+    justify-content: flex-start;
+  }
+
+  .seatMapSurface {
+    padding: 12px;
+  }
+
+  .seatMapToolbar {
+    align-items: stretch;
+  }
+
+  .seatMapControls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .venueShell {
+    width: 2080px;
+    padding: 16px 16px 12px;
+  }
+
+  .seatChartTop {
+    gap: 38px;
+    padding-bottom: 18px;
+  }
+
+  .seatBlock {
+    --seat-size: 26px;
+    --seat-gap: 8px;
+  }
+
+  .seatBlockWingLeft,
+  .seatBlockWingRight {
+    --seat-size: 20px;
+    --seat-gap: 37px;
+  }
+
+  .stageBar {
+    min-height: 112px;
+  }
+
+  .stageBar span {
+    font-size: 3.7rem;
+  }
+
+  .orderPanel {
+    align-items: stretch;
+  }
+
+  .field {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 901px) {
+  .seatMapOnlyLayout {
+    grid-template-columns: minmax(0, 1fr) 340px;
+    align-items: start;
+  }
+
+  .seatMapCardOnly {
+    min-width: 0;
+  }
+
+  .seatMapCardOnly .seatMapViewport {
+    max-height: calc(100vh - 220px);
+  }
+
+  .orderPanelAside {
+    position: sticky;
+    top: 24px;
+    flex-direction: column;
+  }
+
+  .orderPanelAside .primaryButton {
+    width: 100%;
+  }
+}
+
+@media print {
+  .page {
+    padding: 0;
+    background: #fff;
+    color: #111;
+  }
+
+  .heroCard,
+  .sectionCard,
+  .statusCard,
+  .backLink,
+  .statusActions {
+    display: none;
+  }
+
+  .ticketGrid {
+    margin: 0;
+  }
+
+  .ticketCard {
+    border: 1px solid #bbb;
+    box-shadow: none;
+    background: #fff;
+    color: #111;
+    page-break-inside: avoid;
+  }
+
+  .ticketMeta,
+  .qrPanel {
+    border-color: #ccc;
+    background: #fff;
+  }
+
+  .summaryLabel,
+  .ticketLabel,
+  .ticketNotes,
+  .qrCaption,
+  .ticketCode {
+    color: #333;
+  }
+}

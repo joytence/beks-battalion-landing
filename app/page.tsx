@@ -78,6 +78,7 @@ function TicketStars({ count }: { count: number }) {
 
 const ticketTiers = [
   {
+    id: "svip",
     name: "SVIP",
     stars: 4,
     price: "150$",
@@ -86,6 +87,7 @@ const ticketTiers = [
     perks: ["Front row seating", "Meet and greet access", "Photo opportunity"],
   },
   {
+    id: "vip",
     name: "VIP",
     stars: 3,
     price: "125$",
@@ -97,6 +99,7 @@ const ticketTiers = [
     ],
   },
   {
+    id: "general",
     name: "General Admission",
     stars: 0,
     price: "100$",
@@ -351,12 +354,12 @@ export default function Page() {
                         <li key={perk}>{perk}</li>
                       ))}
                     </ul>
-                    <InquiryAction
+                    <a
                       className="cta cta--ghost ticket-card__buy"
-                      itemName={tier.name}
-                      kind="ticket"
-                      label="Buy Now"
-                    />
+                      href="/tickets"
+                    >
+                      Buy Now
+                    </a>
                   </article>
                 ))}
               </div>
@@ -427,8 +430,13 @@ export default function Page() {
                   alt="Manila Bistro"
                 />
                 <img
-                  className="sponsor-cta__logo sponsor-cta__logo--mrs-b"
-                  src="/assets/mrs-b-realty.png"
+                  className="sponsor-cta__logo"
+                  src="/assets/jpm-lights-and-sounds.jpg"
+                  alt="JPM Lights and Sounds"
+                />
+                <img
+                  className="sponsor-cta__logo sponsor-cta__logo--wide"
+                  src="/assets/mrs-b-realty-transparent.png"
                   alt="Mrs. B's Realty"
                 />
                 <img
