@@ -784,6 +784,12 @@ export function isValidTierSeatLabel(tierId: TicketTierId, seatLabel: string) {
   );
 }
 
+export function getTierIdForSeatLabel(seatLabel: string) {
+  const normalizedSeatLabel = seatLabel.trim().toUpperCase();
+
+  return ticketTiers.find((tier) => isValidTierSeatLabel(tier.id, normalizedSeatLabel))?.id || null;
+}
+
 function getSigningSecret() {
   const explicitSecret = process.env.TICKET_SIGNING_SECRET?.trim();
 

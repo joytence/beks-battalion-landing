@@ -5,6 +5,7 @@ let stripeClient: Stripe | null = null;
 let performanceLocationIdPromise: Promise<string> | null = null;
 const STRIPE_TICKET_TAX_CODE_DEFAULT = "txcd_50010001";
 const STRIPE_TAX_LOCATION_API_VERSION = "2026-06-24.preview";
+const TICKET_PROCESSING_FEE_RATE = 0.03;
 
 export function isTicketCheckoutEnabled() {
   return process.env.TICKET_CHECKOUT_ENABLED?.trim().toLowerCase() === "true";
@@ -50,6 +51,18 @@ export function getStripeTicketTaxBehavior(): Stripe.Checkout.SessionCreateParam
 
 export function getStripeTicketTaxCode() {
   return process.env.STRIPE_TICKET_TAX_CODE?.trim() || STRIPE_TICKET_TAX_CODE_DEFAULT;
+}
+
+export function getTicketProcessingFeeRate() {
+  return TICKET_PROCESSING_FEE_RATE;
+}
+
+export function calculateTicketProcessingFeeCents(ticketSubtotalCents: number) {
+  if (!Number.isFinite(ticketSubtotalCents) || ticketSubtotalCents <= 0) {
+    return 0;
+  }
+
+  return Math.round(ticketSubtotalCents * getTicketProcessingFeeRate());
 }
 
 export function getStripe() {

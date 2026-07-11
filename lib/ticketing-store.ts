@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import postgres, { type Sql, type TransactionSql } from "postgres";
 import {
   eventDetails,
+  getTierIdForSeatLabel,
   getTicketTierById,
   isValidTierSeatLabel,
   parseSeatLabels,
@@ -46,6 +47,12 @@ type ReassignTicketParams = {
   ticketIndex: number;
 };
 
+type BlockSeatsParams = {
+  actorLabel: string;
+  notes?: string;
+  seatLabels: string[];
+};
+
 export class TicketingStoreError extends Error {
   status: number;
 
@@ -70,6 +77,16 @@ function getSeatHoldMinutes() {
   }
 
   return Math.min(60, Math.max(30, Math.round(configured)));
+}
+
+function normalizeSeatLabels(seatLabels: string[]) {
+  return Array.from(
+    new Set(
+      seatLabels
+        .map((seatLabel) => seatLabel.trim().toUpperCase())
+        .filter(Boolean),
+    ),
+  );
 }
 
 function getPaymentIntentId(paymentIntent: Stripe.Checkout.Session["payment_intent"]) {
@@ -654,6 +671,210 @@ export async function reassignReservedSeatTicket({
         newSeatLabel: normalizedSeatLabel,
         ticketId: ticket.id,
         ticketIndex,
+      };
+    }),
+  );
+}
+
+export async function blockSeatsForAdmin({ actorLabel, notes, seatLabels }: BlockSeatsParams) {
+  return withStore(async (sql) =>
+    sql.begin(async (tx) => {
+      await releaseExpiredSeatHolds(tx);
+
+      const normalizedSeatLabels = normalizeSeatLabels(seatLabels);
+
+      if (normalizedSeatLabels.length < 1) {
+        throw new TicketingStoreError("Please provide at least one seat to block.", 400);
+      }
+
+      const seatEntries = normalizedSeatLabels.map((seatLabel) => ({
+        seatLabel,
+        tierId: getTierIdForSeatLabel(seatLabel),
+      }));
+      const invalidSeat = seatEntries.find((entry) => !entry.tierId);
+
+      if (invalidSeat) {
+        throw new TicketingStoreError(`Seat ${invalidSeat.seatLabel} is not a valid seat label.`, 400);
+      }
+
+      const existingHolds = await tx<
+        {
+          order_id: string;
+          seat_label: string;
+          status: SeatHoldStatus;
+        }[]
+      >`
+        select order_id, seat_label, status
+        from ticket_seat_holds
+        where event_slug = ${eventDetails.slug}
+          and seat_label in ${tx(normalizedSeatLabels)}
+          and (
+            status in ('blocked', 'converted')
+            or (status = 'held' and expires_at > now())
+          )
+        for update
+      `;
+
+      const alreadyBlockedSeatLabels = existingHolds
+        .filter((hold) => hold.status === "blocked")
+        .map((hold) => hold.seat_label.trim().toUpperCase());
+      const conflictingSeat = existingHolds.find((hold) => hold.status !== "blocked");
+
+      if (conflictingSeat) {
+        throw new TicketingStoreError(
+          `Seat ${conflictingSeat.seat_label.trim().toUpperCase()} is already assigned or in an active checkout hold.`,
+          409,
+        );
+      }
+
+      const alreadyBlockedSet = new Set(alreadyBlockedSeatLabels);
+      const newlyBlockedSeatEntries = seatEntries.filter(
+        (entry): entry is { seatLabel: string; tierId: TicketTierId } =>
+          Boolean(entry.tierId) && !alreadyBlockedSet.has(entry.seatLabel),
+      );
+
+      for (const entry of newlyBlockedSeatEntries) {
+        const orderId = randomUUID();
+
+        await tx`
+          insert into ticket_orders (
+            id,
+            event_slug,
+            checkout_flow,
+            ticket_tier_id,
+            ticket_quantity,
+            order_status,
+            seat_assignment_mode
+          )
+          values (
+            ${orderId},
+            ${eventDetails.slug},
+            'reserved_seat',
+            ${entry.tierId},
+            1,
+            'pending',
+            'blocked'
+          )
+        `;
+
+        await tx`
+          insert into ticket_seat_holds (
+            id,
+            order_id,
+            event_slug,
+            seat_label,
+            ticket_tier_id,
+            status,
+            expires_at
+          )
+          values (
+            ${randomUUID()},
+            ${orderId},
+            ${eventDetails.slug},
+            ${entry.seatLabel},
+            ${entry.tierId},
+            'blocked',
+            now()
+          )
+        `;
+
+        await tx`
+          insert into ticket_admin_audit (
+            id,
+            actor_label,
+            action_type,
+            order_id,
+            seat_label_to,
+            notes
+          )
+          values (
+            ${randomUUID()},
+            ${actorLabel},
+            'seat_blocked',
+            ${orderId},
+            ${entry.seatLabel},
+            ${notes?.trim() || ""}
+          )
+        `;
+      }
+
+      return {
+        alreadyBlockedSeatLabels,
+        blockedSeatLabels: newlyBlockedSeatEntries.map((entry) => entry.seatLabel),
+      };
+    }),
+  );
+}
+
+export async function unblockSeatsForAdmin({ actorLabel, notes, seatLabels }: BlockSeatsParams) {
+  return withStore(async (sql) =>
+    sql.begin(async (tx) => {
+      const normalizedSeatLabels = normalizeSeatLabels(seatLabels);
+
+      if (normalizedSeatLabels.length < 1) {
+        throw new TicketingStoreError("Please provide at least one seat to unblock.", 400);
+      }
+
+      const blockedHolds = await tx<
+        {
+          id: string;
+          order_id: string;
+          seat_label: string;
+        }[]
+      >`
+        select id, order_id, seat_label
+        from ticket_seat_holds
+        where event_slug = ${eventDetails.slug}
+          and seat_label in ${tx(normalizedSeatLabels)}
+          and status = 'blocked'
+        for update
+      `;
+
+      const blockedSeatLabels = blockedHolds.map((hold) => hold.seat_label.trim().toUpperCase());
+      const blockedSeatSet = new Set(blockedSeatLabels);
+      const notBlockedSeatLabels = normalizedSeatLabels.filter((seatLabel) => !blockedSeatSet.has(seatLabel));
+
+      if (blockedHolds.length > 0) {
+        await tx`
+          update ticket_seat_holds
+          set status = 'released',
+              updated_at = now()
+          where id in ${tx(blockedHolds.map((hold) => hold.id))}
+        `;
+
+        await tx`
+          update ticket_orders
+          set order_status = 'canceled',
+              updated_at = now()
+          where id in ${tx(blockedHolds.map((hold) => hold.order_id))}
+            and order_status = 'pending'
+        `;
+
+        for (const hold of blockedHolds) {
+          await tx`
+            insert into ticket_admin_audit (
+              id,
+              actor_label,
+              action_type,
+              order_id,
+              seat_label_from,
+              notes
+            )
+            values (
+              ${randomUUID()},
+              ${actorLabel},
+              'seat_unblocked',
+              ${hold.order_id},
+              ${hold.seat_label.trim().toUpperCase()},
+              ${notes?.trim() || ""}
+            )
+          `;
+        }
+      }
+
+      return {
+        notBlockedSeatLabels,
+        unblockedSeatLabels: blockedSeatLabels,
       };
     }),
   );

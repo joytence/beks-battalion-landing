@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  calculateTicketProcessingFeeCents,
   getStripe,
   getStripeTicketTaxConfig,
   isStripeConfigured,
@@ -78,6 +79,8 @@ export async function POST(request: Request) {
     });
 
     const quantity = reservation.seatLabels.length;
+    const ticketSubtotalCents = tier.priceCents * quantity;
+    const processingFeeCents = calculateTicketProcessingFeeCents(ticketSubtotalCents);
     const seatLabelsJoined = reservation.seatLabels.join("|");
     const session = await stripe.checkout.sessions.create({
       cancel_url: `${origin}/tickets?canceled=1`,
@@ -99,11 +102,27 @@ export async function POST(request: Request) {
           },
           quantity,
         },
+        ...(processingFeeCents > 0
+          ? [
+              {
+                price_data: {
+                  currency: "usd",
+                  product_data: {
+                    description: `3% processing fee for ${quantity} ${tier.name} ticket${quantity === 1 ? "" : "s"}`,
+                    name: "Processing Fee",
+                  },
+                  unit_amount: processingFeeCents,
+                },
+                quantity: 1,
+              },
+            ]
+          : []),
       ],
       metadata: {
         checkout_flow: "reserved_seat",
         event_slug: eventDetails.slug,
         order_id: reservation.orderId,
+        processing_fee_cents: String(processingFeeCents),
         seat_assignment: "reserved",
         seat_labels: seatLabelsJoined,
         ticket_quantity: String(quantity),
@@ -123,6 +142,7 @@ export async function POST(request: Request) {
           checkout_flow: "reserved_seat",
           event_slug: eventDetails.slug,
           order_id: reservation.orderId,
+          processing_fee_cents: String(processingFeeCents),
           seat_assignment: "reserved",
           seat_labels: seatLabelsJoined,
           ticket_quantity: String(quantity),

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  calculateTicketProcessingFeeCents,
   getStripe,
   getStripeTicketTaxConfig,
   isStripeConfigured,
@@ -59,6 +60,8 @@ export async function POST(request: Request) {
   }
 
   const quantity = validatedQuantity.quantity;
+  const ticketSubtotalCents = tier.priceCents * quantity;
+  const processingFeeCents = calculateTicketProcessingFeeCents(ticketSubtotalCents);
   const origin = getRequestOrigin(request);
   const stripe = getStripe();
   const ticketTaxConfig = await getStripeTicketTaxConfig();
@@ -82,10 +85,26 @@ export async function POST(request: Request) {
           },
           quantity,
         },
+        ...(processingFeeCents > 0
+          ? [
+              {
+                price_data: {
+                  currency: "usd",
+                  product_data: {
+                    description: `3% processing fee for ${quantity} ${tier.name} test ticket${quantity === 1 ? "" : "s"}`,
+                    name: "Processing Fee",
+                  },
+                  unit_amount: processingFeeCents,
+                },
+                quantity: 1,
+              },
+            ]
+          : []),
       ],
       metadata: {
         checkout_flow: "tier_test",
         event_slug: eventDetails.slug,
+        processing_fee_cents: String(processingFeeCents),
         seat_assignment: "unassigned",
         seat_labels: "",
         ticket_quantity: String(quantity),
@@ -104,6 +123,7 @@ export async function POST(request: Request) {
         metadata: {
           checkout_flow: "tier_test",
           event_slug: eventDetails.slug,
+          processing_fee_cents: String(processingFeeCents),
           seat_assignment: "unassigned",
           seat_labels: "",
           ticket_quantity: String(quantity),

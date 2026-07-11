@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { TicketCheckoutClient } from "./TicketCheckoutClient";
 import styles from "./ticketing.module.css";
 import {
+  getTicketProcessingFeeRate,
   isStripeConfigured,
   isStripeTestMode,
   isTicketCheckoutEnabled,
@@ -42,6 +43,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   const reservedSeatReady = checkoutEnabled && configured && databaseConfigured;
   const unavailableSeatLabels = databaseConfigured ? await getUnavailableSeatLabels() : new Set<string>();
   const seatChart = getTicketSeatChart({ blockedSeatLabels: unavailableSeatLabels });
+  const processingFeeLabel = `${Math.round(getTicketProcessingFeeRate() * 100)}%`;
   const tiers = ticketTiers.map((tier) => ({
     ...tier,
     priceLabel: formatCurrency(tier.priceCents),
@@ -56,6 +58,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
           configured={configured}
           databaseConfigured={databaseConfigured}
           initialTierId={initialTierId}
+          processingFeeLabel={processingFeeLabel}
           seatChart={seatChart}
           seatMapOnly={true}
           stripeTestMode={stripeTestMode}
@@ -99,12 +102,12 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
         {tierTestReady ? (
           <div className={styles.setupBox}>
             Stripe test checkout is enabled for tier-only orders. Use a Stripe test card like
-            `4242 4242 4242 4242` with any future date and CVC. The seat map remains preview-only.
+            `4242 4242 4242 4242` with any future date and CVC. A separate {processingFeeLabel} processing fee is disclosed before payment and shown as its own line item at checkout. The seat map remains preview-only.
           </div>
         ) : checkoutEnabled && configured && !databaseConfigured ? (
           <div className={styles.setupBox}>
             Reserved-seat checkout still needs `DATABASE_URL` before live payments can safely lock
-            sold seats and admin overrides.
+            sold seats and admin overrides. A separate {processingFeeLabel} processing fee is disclosed before payment and shown as its own line item at checkout.
           </div>
         ) : tierTestCheckoutEnabled && !configured ? (
           <div className={styles.setupBox}>
@@ -119,7 +122,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
         ) : !checkoutEnabled ? (
           <div className={styles.setupBox}>
             Ticket payments are temporarily paused while Stripe is being finalized. Seat selection
-            stays visible so you can keep refining the layout safely.
+            stays visible so you can keep refining the layout safely. When payments are turned back on, a separate {processingFeeLabel} processing fee will be disclosed before payment and shown as its own line item at checkout.
           </div>
         ) : !configured ? (
           <div className={styles.setupBox}>
@@ -148,6 +151,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
           configured={configured}
           databaseConfigured={databaseConfigured}
           initialTierId={initialTierId}
+          processingFeeLabel={processingFeeLabel}
           seatChart={seatChart}
           seatMapOnly={false}
           stripeTestMode={stripeTestMode}

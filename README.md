@@ -32,6 +32,7 @@ An isolated electronic ticketing flow now lives in these routes:
 - `/tickets` - ticket selection and Stripe Checkout handoff
 - `/api/tickets/checkout` - reserved-seat checkout with seat holds and Stripe Checkout
 - `/api/tickets/tier-checkout` - test-only tier checkout without seat assignment
+- `/api/tickets/admin/block` - admin-only seat block and unblock endpoint for pre-reserved seats
 - `/api/tickets/admin/reassign` - admin-only reserved-seat reassignment endpoint
 - `/tickets/confirmation?session_id=...` - print-ready ticket page after payment
 - `/tickets/verify?ticket=...` - signed QR verification page
@@ -58,8 +59,21 @@ Notes:
 - The safer tier-only test flow requires `TICKET_TIER_TEST_CHECKOUT_ENABLED=true` and a Stripe test key such as `sk_test_...` or `rk_test_...`.
 - Stripe Tax is gated behind `STRIPE_TAX_ENABLED=true` so checkout does not fail before tax registrations are configured in Stripe.
 - The current event performance location is `1250 Olympic Parkway, Chula Vista, CA 91913, US`, and ticket tax is configured as exclusive so tax is added on top of the listed price.
+- Checkout now adds a separate 3% processing fee line item on top of the ticket subtotal in both reserved-seat checkout and the test tier-only checkout flow.
+- The ticket page now discloses that 3% processing fee before payment and Stripe Checkout itemizes it as a separate line item.
 - Reserved-seat checkout now requires Postgres-backed seat holds, fulfilled tickets, and webhook reconciliation before live payments.
 - The admin reassignment route expects either `Authorization: Bearer <TICKET_ADMIN_SECRET>` or `X-Ticket-Admin-Secret: <TICKET_ADMIN_SECRET>`.
+- The admin block route accepts `POST` to block seats and `DELETE` to unblock seats using the same admin secret header pattern.
+- The admin block payload shape is:
+
+```json
+{
+  "actorLabel": "Joy Stage Admin",
+  "seatLabels": ["SA1-1", "SA1-2", "SB1-1"],
+  "notes": "Sponsor and family hold"
+}
+```
+
 - The admin reassignment payload shape is:
 
 ```json

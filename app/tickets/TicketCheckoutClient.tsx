@@ -49,6 +49,7 @@ type TicketCheckoutClientProps = {
   configured: boolean;
   databaseConfigured: boolean;
   initialTierId: string;
+  processingFeeLabel: string;
   seatChart: SeatChart;
   seatMapOnly: boolean;
   stripeTestMode: boolean;
@@ -116,6 +117,7 @@ export function TicketCheckoutClient({
   configured,
   databaseConfigured,
   initialTierId,
+  processingFeeLabel,
   seatChart,
   seatMapOnly,
   stripeTestMode,
@@ -369,6 +371,11 @@ export function TicketCheckoutClient({
 
         {error ? <div className={styles.error}>{error}</div> : null}
 
+        <div className={styles.notice}>
+          A separate {processingFeeLabel} processing fee applies to paid orders. The fee is shown
+          before payment and itemized as its own line item in Stripe Checkout.
+        </div>
+
         {seatMapOnly ? (
           <div className={styles.mapPageHeader}>
             <a className={`${styles.secondaryButton} ${styles.backActionButton}`} href="/tickets">
@@ -442,6 +449,10 @@ export function TicketCheckoutClient({
                   >
                     {submittingTierId === tier.id ? "Opening Stripe Test Checkout..." : "Start Test Checkout"}
                   </button>
+
+                  <div className={styles.feeDisclosure}>
+                    {processingFeeLabel} processing fee disclosed before payment
+                  </div>
 
                   <a
                     className={`${styles.secondaryButton} ${styles.tierCardAction}`}
