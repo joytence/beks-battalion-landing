@@ -12,6 +12,7 @@ import {
   formatEventDate,
   getCheckoutFlow,
   getSiteUrl,
+  parseStripeReceiptAccessToken,
   getTicketAssignmentFieldLabel,
   getTicketAssignmentLabel,
   getTicketTierById,
@@ -31,12 +32,12 @@ async function buildQrMarkup(value: string) {
   return QRCode.toString(value, {
     color: {
       dark: "#111111",
-      light: "#0000",
+      light: "#ffffff",
     },
     errorCorrectionLevel: "M",
-    margin: 0,
+    margin: 2,
     type: "svg",
-    width: 180,
+    width: 256,
   });
 }
 
@@ -44,12 +45,15 @@ export default async function TicketConfirmationPage({
   searchParams,
 }: ConfirmationPageProps) {
   const params = (await searchParams) || {};
-  const sessionId = typeof params.session_id === "string" ? params.session_id : "";
+  const accessToken = typeof params.access === "string" ? params.access : "";
+  const parsedAccess = accessToken ? parseStripeReceiptAccessToken(accessToken) : null;
+  const sessionId =
+    parsedAccess?.sessionId || (typeof params.session_id === "string" ? params.session_id : "");
 
   if (!isStripeConfigured()) {
     return (
-      <main className={styles.page}>
-        <section className={styles.statusCard}>
+      <main className={styles.receiptPage}>
+        <section className={styles.receiptStatusCard}>
           <div className={styles.statusEyebrow}>Stripe setup required</div>
           <h1 className={styles.statusTitle}>Checkout is not configured yet</h1>
           <p className={styles.statusLead}>
@@ -62,8 +66,8 @@ export default async function TicketConfirmationPage({
 
   if (!sessionId) {
     return (
-      <main className={styles.page}>
-        <section className={styles.statusCard}>
+      <main className={styles.receiptPage}>
+        <section className={styles.receiptStatusCard}>
           <div className={styles.statusEyebrow}>Missing session</div>
           <h1 className={styles.statusTitle}>No checkout session was provided</h1>
           <p className={styles.statusLead}>
@@ -84,8 +88,8 @@ export default async function TicketConfirmationPage({
 
   if (session.payment_status !== "paid" || !tier || quantity < 1) {
     return (
-      <main className={styles.page}>
-        <section className={styles.statusCard}>
+      <main className={styles.receiptPage}>
+        <section className={styles.receiptStatusCard}>
           <div className={styles.statusEyebrow}>Payment incomplete</div>
           <h1 className={styles.statusTitle}>Ticket issuance is not available yet</h1>
           <p className={styles.statusLead}>
@@ -107,29 +111,32 @@ export default async function TicketConfirmationPage({
     isTicketingDatabaseConfigured() && checkoutFlow === "reserved_seat"
       ? await getOrderTicketsByCheckoutSessionId(session.id)
       : [];
+  const activePersistedTickets = persistedTickets.filter((ticket) => ticket.ticketStatus === "active");
+  const ticketsToRender =
+    activePersistedTickets.length > 0
+      ? activePersistedTickets.map((ticket) => ({
+          seatLabel: ticket.seatLabel,
+          ticketIndex: ticket.ticketIndex,
+        }))
+      : Array.from({ length: quantity }).map((_, index) => ({
+          seatLabel: seatLabels[index] || "Unassigned",
+          ticketIndex: index + 1,
+        }));
 
   const tickets = await Promise.all(
-    Array.from({ length: quantity }).map(async (_, index) => {
-      const ticketIndex = index + 1;
-      const persistedTicket = persistedTickets.find((ticket) => ticket.ticketIndex === ticketIndex);
+    ticketsToRender.map(async ({ seatLabel, ticketIndex }) => {
       const assignmentLabel = getTicketAssignmentLabel(
         tier.name,
-        persistedTicket?.seatLabel || seatLabels[index] || "Unassigned",
+        seatLabel,
         checkoutFlow,
       );
       const token = createSignedTicketToken({
-        amountTotal,
-        currency,
         eventSlug: eventDetails.slug,
-        issuedAt: session.created,
-        purchaserEmail,
-        purchaserName,
-        quantity,
-        seatLabel: assignmentLabel,
+        issuedSource: "stripe",
         sessionId: session.id,
         ticketIndex,
         tierId: tier.id,
-        version: 1,
+        version: 2,
       });
       const verifyUrl = `${siteUrl}/tickets/verify?ticket=${encodeURIComponent(token)}`;
       const qrMarkup = await buildQrMarkup(verifyUrl);
@@ -145,8 +152,8 @@ export default async function TicketConfirmationPage({
   );
 
   return (
-    <main className={styles.page}>
-      <section className={styles.statusCard}>
+    <main className={styles.receiptPage}>
+      <section className={styles.receiptStatusCard}>
         <div className={styles.statusEyebrow}>Paid successfully</div>
         <h1 className={styles.statusTitle}>Print-Ready Electronic Tickets</h1>
         <p className={styles.statusLead}>

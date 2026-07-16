@@ -20,7 +20,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Electronic Tickets | Joy Stage Productions",
-  description: "Electronic ticketing draft and seat-selection preview for the Beks Battalion live show.",
+  description: "Electronic tickets and reserved seat selection for the Beks Battalion live show.",
 };
 
 type TicketsPageProps = {
@@ -72,16 +72,29 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
   return (
     <main className={styles.page}>
       <section className={styles.heroCard}>
-        <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/">
-          Back to Event Page
-        </a>
+        <div className={styles.heroActionRow}>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/">
+            Back to Event Page
+          </a>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin">
+            Open Seat Admin
+          </a>
+        </div>
 
-        <div className={styles.eyebrow}>Electronic Ticketing Draft</div>
-        <h1 className={styles.title}>Electronic Tickets And Seat Map Preview</h1>
+        <div className={styles.eyebrow}>
+          {reservedSeatReady ? "Electronic Tickets" : "Electronic Ticketing"}
+        </div>
+        <h1 className={styles.title}>
+          {reservedSeatReady
+            ? "Electronic Tickets And Reserved Seat Selection"
+            : "Electronic Tickets And Seat Map Preview"}
+        </h1>
         <p className={styles.lead}>
-          {tierTestReady
-            ? "This route stays isolated from the landing page while reserved seating is still draft-only. Tier checkout is live in Stripe test mode, and the seat map remains a preview."
-            : "This route stays isolated from the landing page while the live Stripe payment flow is being finalized. You can still review tiers and the bird&apos;s-eye seat map, but payment is temporarily paused."}
+          {reservedSeatReady
+            ? "Choose your ticket tier, open the seat map, select your seats, and continue through Stripe Checkout for instant printable electronic tickets."
+            : tierTestReady
+              ? "This route stays isolated from the landing page while reserved seating is still being finalized. Tier checkout is live in Stripe test mode, and the seat map remains a preview."
+              : "This route stays isolated from the landing page while the live Stripe payment flow is being finalized. You can still review tiers and the bird&apos;s-eye seat map, but payment is temporarily paused."}
         </p>
 
         <div className={styles.eventSummary}>

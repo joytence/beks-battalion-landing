@@ -129,7 +129,7 @@ const sponsors = [
     price: "$1,500",
     items: [
       "Logo on posters and social media",
-      "6 VIP tickets included",
+      "6 SVIP tickets included",
       "Stage recognition",
       "Booth or display space",
       "Preferred sponsor placement",
@@ -142,7 +142,7 @@ const sponsors = [
     price: "$750",
     items: [
       "Logo on selected promotional materials",
-      "3 VIP tickets included",
+      "3 tickets included in the package",
       "Social media shout-out",
       "Supporter recognition",
       "Budget-friendly entry point",
@@ -154,7 +154,7 @@ const sponsors = [
 const socialLinks = [
   {
     label: "Facebook",
-    href: "https://www.facebook.com/joystageproductions",
+    href: "https://www.facebook.com/profile.php?id=61591769009057",
     icon: "facebook",
   },
   {
@@ -417,32 +417,43 @@ export default function Page() {
 
           <div className="panel sponsor-cta">
             <div className="sponsor-cta__stack">
-              <div className="sponsor-cta__current">Our Current Sponsors</div>
+              <div className="sponsor-cta__current">To know more about our sponsors click their logos.</div>
               <div className="sponsor-cta__logos" aria-label="Current sponsor logos">
                 <img
                   className="sponsor-cta__logo"
                   src="/assets/john-deleon-enterprize.jpg"
                   alt="John De Leon Enterprise"
                 />
-                <img
-                  className="sponsor-cta__logo"
-                  src="/assets/manila-bistro-logo.jpg"
-                  alt="Manila Bistro"
-                />
-                <img
-                  className="sponsor-cta__logo"
-                  src="/assets/jpm-lights-and-sounds.jpg"
-                  alt="JPM Lights and Sounds"
-                />
+                <a
+                  className="sponsor-cta__logo-link"
+                  href="https://www.facebook.com/manilabistro.sd/"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Open Manila Bistro"
+                >
+                  <img
+                    className="sponsor-cta__logo"
+                    src="/assets/manila-bistro-logo.jpg"
+                    alt="Manila Bistro"
+                  />
+                </a>
+                <a
+                  className="sponsor-cta__logo-link"
+                  href="https://www.facebook.com/profile.php?id=100051323666388"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Open JPM Lights and Sounds"
+                >
+                  <img
+                    className="sponsor-cta__logo"
+                    src="/assets/jpm-lights-and-sounds.jpg"
+                    alt="JPM Lights and Sounds"
+                  />
+                </a>
                 <img
                   className="sponsor-cta__logo sponsor-cta__logo--wide"
                   src="/assets/mrs-b-realty-transparent.png"
                   alt="Mrs. B's Realty"
-                />
-                <img
-                  className="sponsor-cta__logo sponsor-cta__logo--valerio"
-                  src="/assets/valerio-logo.jpg"
-                  alt="Valerio's Est. 1976"
                 />
                 <img
                   className="sponsor-cta__logo sponsor-cta__logo--luna"

@@ -60,6 +60,7 @@ type TicketCheckoutClientProps = {
 const selectableTierIds = ["svip", "vip", "general"];
 const venueBaseWidth = 2080;
 const mapZoomStep = 0.18;
+const maxTicketsPerOrder = 10;
 const defaultTierQuantities = {
   general: 1,
   svip: 1,
@@ -142,6 +143,8 @@ export function TicketCheckoutClient({
   const selectedTier = tiers.find((tier) => tier.id === selectedTierId) || null;
   const quantity = selectedSeats.length;
   const visibleTiers = tiers.filter((tier) => selectableTierIds.includes(tier.id));
+  const tierTestReady = tierTestCheckoutEnabled && configured && stripeTestMode;
+  const reservedSeatReady = checkoutEnabled && configured && databaseConfigured;
   const showZoomControls = isCompactViewport && fitScale < 1;
   const shouldScaleMap = mapScale < 1;
   const scaledMapStyle =
@@ -228,7 +231,7 @@ export function TicketCheckoutClient({
   }
 
   function handleTierQuantityChange(tierId: string, nextValue: number) {
-    const nextQuantity = Math.min(10, Math.max(1, nextValue || 1));
+    const nextQuantity = Math.min(maxTicketsPerOrder, Math.max(1, nextValue || 1));
 
     setTierQuantities((current) => ({
       ...current,
@@ -248,8 +251,8 @@ export function TicketCheckoutClient({
         return nextSeats;
       }
 
-      if (current.length >= 10) {
-        setError("You can select up to 10 seats per order.");
+      if (current.length >= maxTicketsPerOrder) {
+        setError(`You can select up to ${maxTicketsPerOrder} seats per order.`);
         return current;
       }
 
@@ -405,61 +408,84 @@ export function TicketCheckoutClient({
                   ))}
                 </ul>
                 <div className={styles.tierCardFooter}>
-                  <div className={styles.tierQuantityRow}>
-                    <span className={styles.tierQuantityLabel}>Test Quantity</span>
-                    <div className={styles.tierQuantityControl}>
+                  {tierTestReady ? (
+                    <>
+                      <div className={styles.tierQuantityRow}>
+                        <span className={styles.tierQuantityLabel}>Test Quantity</span>
+                        <div className={styles.tierQuantityControl}>
+                          <button
+                            className={styles.tierQuantityButton}
+                            type="button"
+                            onClick={() => handleTierQuantityChange(tier.id, getTierQuantity(tier.id) - 1)}
+                            disabled={getTierQuantity(tier.id) <= 1 || submittingTierId === tier.id}
+                            aria-label={`Decrease ${tier.name} quantity`}
+                          >
+                            -
+                          </button>
+                          <input
+                            className={styles.tierQuantityInput}
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            max={maxTicketsPerOrder}
+                            value={getTierQuantity(tier.id)}
+                            onChange={(event) =>
+                              handleTierQuantityChange(tier.id, Number(event.currentTarget.value))
+                            }
+                            aria-label={`${tier.name} test quantity`}
+                          />
+                          <button
+                            className={styles.tierQuantityButton}
+                            type="button"
+                            onClick={() => handleTierQuantityChange(tier.id, getTierQuantity(tier.id) + 1)}
+                            disabled={
+                              getTierQuantity(tier.id) >= maxTicketsPerOrder || submittingTierId === tier.id
+                            }
+                            aria-label={`Increase ${tier.name} quantity`}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+
                       <button
-                        className={styles.tierQuantityButton}
+                        className={`${styles.primaryButton} ${styles.tierCardCheckoutButton}`}
                         type="button"
-                        onClick={() => handleTierQuantityChange(tier.id, getTierQuantity(tier.id) - 1)}
-                        disabled={getTierQuantity(tier.id) <= 1 || submittingTierId === tier.id}
-                        aria-label={`Decrease ${tier.name} quantity`}
+                        onClick={() => handleTierCheckout(tier.id)}
+                        disabled={!tierTestReady || Boolean(submittingTierId)}
                       >
-                        -
+                        {submittingTierId === tier.id
+                          ? "Opening Stripe Test Checkout..."
+                          : "Start Test Checkout"}
                       </button>
-                      <input
-                        className={styles.tierQuantityInput}
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={10}
-                        value={getTierQuantity(tier.id)}
-                        onChange={(event) =>
-                          handleTierQuantityChange(tier.id, Number(event.currentTarget.value))
-                        }
-                        aria-label={`${tier.name} test quantity`}
-                      />
-                      <button
-                        className={styles.tierQuantityButton}
-                        type="button"
-                        onClick={() => handleTierQuantityChange(tier.id, getTierQuantity(tier.id) + 1)}
-                        disabled={getTierQuantity(tier.id) >= 10 || submittingTierId === tier.id}
-                        aria-label={`Increase ${tier.name} quantity`}
+
+                      <div className={styles.feeDisclosure}>
+                        {processingFeeLabel} processing fee disclosed before payment
+                      </div>
+
+                      <a
+                        className={`${styles.secondaryButton} ${styles.tierCardAction}`}
+                        href={`/tickets?view=seats&tier=${tier.id}#seat-map`}
                       >
-                        +
-                      </button>
-                    </div>
-                  </div>
+                        View {tier.name} Seats
+                      </a>
+                    </>
+                  ) : (
+                    <>
+                      <a
+                        className={`${styles.primaryButton} ${styles.tierCardCheckoutButton}`}
+                        href={`/tickets?view=seats&tier=${tier.id}#seat-map`}
+                      >
+                        {reservedSeatReady ? `Buy ${tier.name} Seats` : `View ${tier.name} Seats`}
+                      </a>
 
-                  <button
-                    className={`${styles.primaryButton} ${styles.tierCardCheckoutButton}`}
-                    type="button"
-                    onClick={() => handleTierCheckout(tier.id)}
-                    disabled={!tierTestCheckoutEnabled || !configured || !stripeTestMode || Boolean(submittingTierId)}
-                  >
-                    {submittingTierId === tier.id ? "Opening Stripe Test Checkout..." : "Start Test Checkout"}
-                  </button>
-
-                  <div className={styles.feeDisclosure}>
-                    {processingFeeLabel} processing fee disclosed before payment
-                  </div>
-
-                  <a
-                    className={`${styles.secondaryButton} ${styles.tierCardAction}`}
-                    href={`/tickets?view=seats&tier=${tier.id}#seat-map`}
-                  >
-                    View {tier.name} Seats
-                  </a>
+                      <div className={styles.feeDisclosure}>
+                        {reservedSeatReady
+                          ? `${processingFeeLabel} processing fee disclosed before payment`
+                          : "Seat map preview available before payment"}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             ))}

@@ -33,7 +33,11 @@ An isolated electronic ticketing flow now lives in these routes:
 - `/api/tickets/checkout` - reserved-seat checkout with seat holds and Stripe Checkout
 - `/api/tickets/tier-checkout` - test-only tier checkout without seat assignment
 - `/api/tickets/admin/block` - admin-only seat block and unblock endpoint for pre-reserved seats
+- `/api/tickets/admin/issue` - admin-only sponsor and comp ticket issuance for already blocked seats
 - `/api/tickets/admin/reassign` - admin-only reserved-seat reassignment endpoint
+- `/tickets/admin` - admin seat blackout controls
+- `/tickets/admin/issue` - admin sponsor and comp ticket issue flow
+- `/tickets/admin/issued?order_id=...` - printable admin-issued ticket page
 - `/tickets/confirmation?session_id=...` - print-ready ticket page after payment
 - `/tickets/verify?ticket=...` - signed QR verification page
 
@@ -51,6 +55,10 @@ Required environment variables for the ticketing flow:
 - `TICKET_ADMIN_SECRET` (optional, enables the admin reassignment endpoint)
 - `TICKET_HOLD_MINUTES` (optional, defaults to 30 and is clamped to Stripe Checkout’s 30-60 minute seat-hold window)
 - `NEXT_PUBLIC_SITE_URL` (recommended so Stripe success/cancel URLs point to the correct domain)
+- `TWILIO_ACCOUNT_SID` (optional, required only if you want admin-issued ticket SMS delivery)
+- `TWILIO_AUTH_TOKEN` (optional, required only if you want admin-issued ticket SMS delivery)
+- `TWILIO_FROM_NUMBER` (optional, use this or `TWILIO_MESSAGING_SERVICE_SID` for admin-issued ticket SMS)
+- `TWILIO_MESSAGING_SERVICE_SID` (optional alternative to `TWILIO_FROM_NUMBER` for admin-issued ticket SMS)
 
 Notes:
 
@@ -64,6 +72,8 @@ Notes:
 - Reserved-seat checkout now requires Postgres-backed seat holds, fulfilled tickets, and webhook reconciliation before live payments.
 - The admin reassignment route expects either `Authorization: Bearer <TICKET_ADMIN_SECRET>` or `X-Ticket-Admin-Secret: <TICKET_ADMIN_SECRET>`.
 - The admin block route accepts `POST` to block seats and `DELETE` to unblock seats using the same admin secret header pattern.
+- The admin issue route accepts `POST` to convert already blocked seats into printable sponsor or comp tickets without Stripe Checkout.
+- The admin text route accepts `POST` to send the printable sponsor or comp pass link by SMS using the stored or newly entered recipient phone number.
 - The admin block payload shape is:
 
 ```json
@@ -71,6 +81,19 @@ Notes:
   "actorLabel": "Joy Stage Admin",
   "seatLabels": ["SA1-1", "SA1-2", "SB1-1"],
   "notes": "Sponsor and family hold"
+}
+```
+
+- The admin issue payload shape is:
+
+```json
+{
+  "actorLabel": "Sponsor - John DeLeon",
+  "purchaserName": "John DeLeon",
+  "purchaserEmail": "john@example.com",
+  "purchaserPhone": "555-555-5555",
+  "seatLabels": ["SB1-5", "SB1-6", "SB1-7", "SB1-8"],
+  "notes": "Sponsor admission passes"
 }
 ```
 

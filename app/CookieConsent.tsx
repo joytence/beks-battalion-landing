@@ -31,8 +31,21 @@ function getStoredConsent(): ConsentChoice | null {
   return stored === "accepted" || stored === "declined" ? stored : null;
 }
 
+function isMetaTrackingSuppressed() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  return (
+    window.location.pathname.startsWith("/tickets/admin") ||
+    params.get("tracking") === "off" ||
+    params.get("internal") === "1"
+  );
+}
+
 function loadMetaPixel() {
-  if (typeof window === "undefined" || window.fbq) {
+  if (typeof window === "undefined" || window.fbq || isMetaTrackingSuppressed()) {
     return;
   }
 
@@ -62,25 +75,32 @@ function loadMetaPixel() {
 }
 
 export function hasTrackingConsent() {
-  return getStoredConsent() === "accepted";
+  return !isMetaTrackingSuppressed() && getStoredConsent() === "accepted";
 }
 
 export function CookieConsent() {
   const [consent, setConsent] = useState<ConsentChoice | null>(null);
   const [isReady, setIsReady] = useState(false);
-  const shouldShowBanner = isReady && consent === null;
+  const [trackingSuppressed, setTrackingSuppressed] = useState(false);
+  const shouldShowBanner = isReady && !trackingSuppressed && consent === null;
 
   useEffect(() => {
+    const shouldSuppressTracking = isMetaTrackingSuppressed();
     const stored = getStoredConsent();
+    setTrackingSuppressed(shouldSuppressTracking);
     setConsent(stored);
     setIsReady(true);
 
-    if (stored === "accepted") {
+    if (!shouldSuppressTracking && stored === "accepted") {
       loadMetaPixel();
     }
   }, []);
 
   function chooseConsent(choice: ConsentChoice) {
+    if (trackingSuppressed) {
+      return;
+    }
+
     window.localStorage.setItem(consentStorageKey, choice);
     setConsent(choice);
 
@@ -131,7 +151,7 @@ export function CookieConsent() {
         </aside>
       ) : null}
 
-      {consent !== null ? (
+      {!trackingSuppressed && consent !== null ? (
         <button
           className="privacy-choice-button"
           type="button"

@@ -8,6 +8,13 @@
   color: var(--text);
 }
 
+.receiptPage {
+  min-height: 100vh;
+  padding: clamp(24px, 4vw, 48px);
+  background: linear-gradient(180deg, #040404, #090909 52%, #040404);
+  color: var(--text);
+}
+
 .heroCard,
 .sectionCard,
 .statusCard,
@@ -34,12 +41,41 @@
   margin-top: 28px;
 }
 
+.receiptStatusCard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: clamp(24px, 5vw, 44px);
+  border: 1px solid rgba(255, 207, 90, 0.3);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(14, 14, 14, 0.995), rgba(6, 6, 6, 0.995)),
+    #090909;
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px rgba(255, 207, 90, 0.06) inset;
+}
+
+.receiptStatusCard .notice {
+  background: rgba(30, 18, 0, 0.96);
+  border-color: rgba(255, 207, 90, 0.24);
+}
+
 .backLink {
   display: inline-flex;
   margin-bottom: 20px;
   align-items: center;
   justify-content: center;
   text-decoration: none;
+}
+
+.heroActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.heroActionRow .backLink {
+  margin-bottom: 0;
 }
 
 .backActionButton {
@@ -908,6 +944,35 @@
   font: inherit;
 }
 
+.textInput,
+.textArea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 207, 90, 0.24);
+  border-radius: 14px;
+  background: rgba(8, 8, 8, 0.9);
+  color: var(--text);
+  font: inherit;
+}
+
+.textInput {
+  min-height: 50px;
+  padding: 0 14px;
+}
+
+.textArea {
+  min-height: 120px;
+  padding: 14px;
+  resize: vertical;
+}
+
+.textInput:focus,
+.textArea:focus,
+.select:focus {
+  outline: 1px solid rgba(255, 207, 90, 0.52);
+  outline-offset: 0;
+}
+
 .selectionSummary {
   display: grid;
   gap: 10px;
@@ -980,6 +1045,31 @@
   margin: 0;
   color: rgba(245, 241, 232, 0.82);
   line-height: 1.55;
+}
+
+.adminPanelStack {
+  display: grid;
+  gap: 18px;
+}
+
+.adminFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.adminActionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.adminResult {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: rgba(245, 241, 232, 0.82);
+  font: 0.95rem/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .primaryButton,
@@ -1076,6 +1166,13 @@
   grid-template-columns: 1.2fr 220px;
   gap: 22px;
   break-inside: avoid;
+  background:
+    linear-gradient(180deg, rgba(14, 14, 14, 0.995), rgba(6, 6, 6, 0.995)),
+    #090909;
+  border-color: rgba(255, 207, 90, 0.3);
+  box-shadow:
+    var(--shadow),
+    0 0 0 1px rgba(255, 207, 90, 0.06) inset;
 }
 
 .ticketBody {
@@ -1105,8 +1202,8 @@
 .ticketMeta,
 .scanMeta {
   padding: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(20, 20, 20, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px 18px;
@@ -1137,8 +1234,8 @@
   gap: 14px;
   padding: 18px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(18, 18, 18, 0.985);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .qrFrame {
@@ -1201,6 +1298,7 @@
   }
 
   .eventSummary,
+  .adminFormGrid,
   .selectorGrid,
   .ticketMeta,
   .scanMeta {
@@ -1295,15 +1393,17 @@
 }
 
 @media print {
-  .page {
+  .page,
+  .receiptPage {
     padding: 0;
-    background: #fff;
-    color: #111;
+    background: #fff !important;
+    color: #111 !important;
   }
 
   .heroCard,
   .sectionCard,
   .statusCard,
+  .receiptStatusCard,
   .backLink,
   .statusActions {
     display: none;
@@ -1311,20 +1411,34 @@
 
   .ticketGrid {
     margin: 0;
+    max-width: none;
+    gap: 16px;
   }
 
   .ticketCard {
     border: 1px solid #bbb;
     box-shadow: none;
-    background: #fff;
-    color: #111;
+    background: #fff !important;
+    color: #111 !important;
     page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .ticketMeta,
   .qrPanel {
     border-color: #ccc;
-    background: #fff;
+    background: #fff !important;
+  }
+
+  .qrFrame {
+    border: 1px solid #ccc;
+    background: #fff !important;
+  }
+
+  .ticketTitle,
+  .ticketPrice,
+  .ticketMetaItem strong {
+    color: #111 !important;
   }
 
   .summaryLabel,
@@ -1332,6 +1446,6 @@
   .ticketNotes,
   .qrCaption,
   .ticketCode {
-    color: #333;
+    color: #333 !important;
   }
 }

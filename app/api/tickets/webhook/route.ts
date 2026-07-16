@@ -1,7 +1,11 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { sendReservedSeatReceiptEmail } from "@/lib/ticket-email";
 import { getStripe, getStripeWebhookSecret, isStripeConfigured, isStripeWebhookConfigured } from "@/lib/stripe";
 import {
+  claimCustomerReceiptEmailSend,
+  markCustomerReceiptEmailFailed,
+  markCustomerReceiptEmailSent,
   syncReservedSeatCheckoutExpired,
   syncReservedSeatPaymentConfirmed,
   syncReservedSeatPaymentFailed,
@@ -43,10 +47,25 @@ export async function POST(request: Request) {
     case "checkout.session.completed":
     case "checkout.session.async_payment_succeeded": {
       const session = event.data.object as Stripe.Checkout.Session;
+      let claimedOrder:
+        | Awaited<ReturnType<typeof claimCustomerReceiptEmailSend>>
+        | null = null;
 
       try {
         await syncReservedSeatPaymentConfirmed(session);
+        claimedOrder = await claimCustomerReceiptEmailSend(session.id);
+
+        if (claimedOrder) {
+          await sendReservedSeatReceiptEmail({
+            livemode: session.livemode ?? false,
+            order: claimedOrder,
+          });
+          await markCustomerReceiptEmailSent(claimedOrder.id);
+        }
       } catch (error) {
+        if (claimedOrder) {
+          await markCustomerReceiptEmailFailed(claimedOrder.id);
+        }
         if (error instanceof TicketingStoreError) {
           return NextResponse.json({ message: error.message }, { status: error.status });
         }

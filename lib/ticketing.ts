@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 
+const MAX_TICKETS_PER_ORDER = 10;
+
 export const eventDetails = {
   city: "San Diego",
   dateIso: "2026-09-13T19:00:00-07:00",
@@ -98,17 +100,33 @@ type TicketSeatChartOptions = {
 };
 
 export type SignedTicketPayload = {
-  amountTotal: number;
-  currency: string;
+  amountTotal?: number;
+  currency?: string;
   eventSlug: string;
-  issuedAt: number;
-  purchaserEmail: string;
-  purchaserName: string;
-  quantity: number;
-  seatLabel: string;
+  issuedAt?: number;
+  issuedOrderId?: string;
+  issuedSource?: "admin" | "stripe";
+  purchaserEmail?: string;
+  purchaserName?: string;
+  quantity?: number;
+  seatLabel?: string;
   sessionId: string;
   ticketIndex: number;
   tierId: TicketTierId;
+  version: 1 | 2;
+};
+
+type AdminIssuedReceiptAccessPayload = {
+  eventSlug: string;
+  kind: "admin_issued_receipt";
+  orderId: string;
+  version: 1;
+};
+
+type StripeReceiptAccessPayload = {
+  eventSlug: string;
+  kind: "stripe_receipt";
+  sessionId: string;
   version: 1;
 };
 
@@ -722,8 +740,11 @@ export function validateRequestedSeatSelection(
     return { error: "Please select at least one seat before continuing.", seatLabels: [] as string[] };
   }
 
-  if (normalized.length > 10) {
-    return { error: "You can select up to 10 seats per order.", seatLabels: [] as string[] };
+  if (normalized.length > MAX_TICKETS_PER_ORDER) {
+    return {
+      error: `You can select up to ${MAX_TICKETS_PER_ORDER} seats per order.`,
+      seatLabels: [] as string[],
+    };
   }
 
   const availableLabels = new Set(
@@ -757,8 +778,11 @@ export function validateRequestedTicketQuantity(quantityValue: unknown) {
     return { error: "Please choose at least 1 ticket.", quantity: 0 };
   }
 
-  if (quantity > 10) {
-    return { error: "You can test up to 10 tickets per order.", quantity: 0 };
+  if (quantity > MAX_TICKETS_PER_ORDER) {
+    return {
+      error: `You can test up to ${MAX_TICKETS_PER_ORDER} tickets per order.`,
+      quantity: 0,
+    };
   }
 
   return { error: "", quantity };
@@ -814,6 +838,126 @@ export function createSignedTicketToken(payload: SignedTicketPayload) {
   return `${body}.${signature}`;
 }
 
+export function createAdminIssuedReceiptAccessToken(orderId: string) {
+  const body = Buffer.from(
+    JSON.stringify({
+      eventSlug: eventDetails.slug,
+      kind: "admin_issued_receipt",
+      orderId,
+      version: 1,
+    } satisfies AdminIssuedReceiptAccessPayload),
+  ).toString("base64url");
+  const signature = signPayload(body);
+  return `${body}.${signature}`;
+}
+
+export function parseAdminIssuedReceiptAccessToken(token: string) {
+  const [body, signature] = token.split(".");
+
+  if (!body || !signature) {
+    return null;
+  }
+
+  const expected = signPayload(body);
+  const signatureBytes = Buffer.from(signature);
+  const expectedBytes = Buffer.from(expected);
+
+  if (
+    signatureBytes.length !== expectedBytes.length ||
+    !crypto.timingSafeEqual(signatureBytes, expectedBytes)
+  ) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(body, "base64url").toString("utf8"),
+    ) as AdminIssuedReceiptAccessPayload;
+
+    if (
+      parsed.version !== 1 ||
+      parsed.kind !== "admin_issued_receipt" ||
+      parsed.eventSlug !== eventDetails.slug ||
+      !parsed.orderId?.trim()
+    ) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function getAdminIssuedReceiptPath(orderId: string) {
+  const accessToken = createAdminIssuedReceiptAccessToken(orderId);
+  return `/tickets/admin/issued?access=${encodeURIComponent(accessToken)}`;
+}
+
+export function getAdminIssuedReceiptUrl(orderId: string) {
+  return `${getSiteUrl()}${getAdminIssuedReceiptPath(orderId)}`;
+}
+
+export function createStripeReceiptAccessToken(sessionId: string) {
+  const body = Buffer.from(
+    JSON.stringify({
+      eventSlug: eventDetails.slug,
+      kind: "stripe_receipt",
+      sessionId,
+      version: 1,
+    } satisfies StripeReceiptAccessPayload),
+  ).toString("base64url");
+  const signature = signPayload(body);
+  return `${body}.${signature}`;
+}
+
+export function parseStripeReceiptAccessToken(token: string) {
+  const [body, signature] = token.split(".");
+
+  if (!body || !signature) {
+    return null;
+  }
+
+  const expected = signPayload(body);
+  const signatureBytes = Buffer.from(signature);
+  const expectedBytes = Buffer.from(expected);
+
+  if (
+    signatureBytes.length !== expectedBytes.length ||
+    !crypto.timingSafeEqual(signatureBytes, expectedBytes)
+  ) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(body, "base64url").toString("utf8"),
+    ) as StripeReceiptAccessPayload;
+
+    if (
+      parsed.version !== 1 ||
+      parsed.kind !== "stripe_receipt" ||
+      parsed.eventSlug !== eventDetails.slug ||
+      !parsed.sessionId?.trim()
+    ) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function getStripeReceiptPath(sessionId: string) {
+  const accessToken = createStripeReceiptAccessToken(sessionId);
+  return `/tickets/confirmation?access=${encodeURIComponent(accessToken)}`;
+}
+
+export function getStripeReceiptUrl(sessionId: string) {
+  return `${getSiteUrl()}${getStripeReceiptPath(sessionId)}`;
+}
+
 export function parseSignedTicketToken(token: string) {
   const [body, signature] = token.split(".");
 
@@ -836,12 +980,12 @@ export function parseSignedTicketToken(token: string) {
     const parsed = JSON.parse(Buffer.from(body, "base64url").toString("utf8")) as SignedTicketPayload;
 
     if (
-      parsed.version !== 1 ||
+      (parsed.version !== 1 && parsed.version !== 2) ||
       parsed.eventSlug !== eventDetails.slug ||
+      (parsed.issuedSource && parsed.issuedSource !== "admin" && parsed.issuedSource !== "stripe") ||
       !getTicketTierById(parsed.tierId) ||
       parsed.ticketIndex < 1 ||
-      parsed.ticketIndex > parsed.quantity ||
-      !parsed.seatLabel
+      (typeof parsed.quantity === "number" && parsed.ticketIndex > parsed.quantity)
     ) {
       return null;
     }
