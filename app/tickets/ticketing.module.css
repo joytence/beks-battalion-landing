@@ -1072,6 +1072,122 @@
   font: 0.95rem/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
+.seatDatabaseSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.seatDatabaseSummaryGrid > div {
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid rgba(255, 207, 90, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.seatDatabaseSummaryGrid span {
+  color: rgba(245, 241, 232, 0.56);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.seatDatabaseSummaryGrid strong {
+  color: var(--gold-soft);
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.08em;
+}
+
+.seatDatabaseTableWrap {
+  overflow-x: auto;
+  border: 1px solid rgba(255, 207, 90, 0.16);
+  border-radius: 20px;
+  background: rgba(7, 7, 7, 0.8);
+}
+
+.seatDatabaseTable {
+  width: 100%;
+  min-width: 1180px;
+  border-collapse: collapse;
+  color: rgba(245, 241, 232, 0.84);
+  font-size: 0.9rem;
+}
+
+.seatDatabaseTable th,
+.seatDatabaseTable td {
+  padding: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  text-align: left;
+  vertical-align: top;
+}
+
+.seatDatabaseTable th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(13, 13, 13, 0.98);
+  color: rgba(255, 207, 90, 0.86);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.seatDatabaseTable td {
+  max-width: 230px;
+}
+
+.seatDatabaseTable td strong,
+.seatDatabaseTable td span {
+  display: block;
+}
+
+.seatDatabaseTable td strong {
+  color: rgba(245, 241, 232, 0.96);
+}
+
+.seatDatabaseTable td span {
+  margin-top: 4px;
+  color: rgba(245, 241, 232, 0.58);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.seatStatusPill {
+  display: inline-flex;
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(245, 241, 232, 0.92);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.seatStatus_available,
+.seatStatus_released,
+.seatStatus_expired {
+  background: rgba(57, 217, 138, 0.12);
+  border-color: rgba(57, 217, 138, 0.22);
+}
+
+.seatStatus_paid,
+.seatStatus_converted {
+  background: rgba(255, 207, 90, 0.14);
+  border-color: rgba(255, 207, 90, 0.3);
+}
+
+.seatStatus_blocked,
+.seatStatus_held {
+  background: rgba(255, 31, 120, 0.13);
+  border-color: rgba(255, 31, 120, 0.28);
+}
+
 .primaryButton,
 .secondaryButton {
   display: inline-flex;

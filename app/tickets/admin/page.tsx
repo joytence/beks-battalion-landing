@@ -21,6 +21,9 @@ export default function TicketAdminPage() {
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/release">
             Release Paid Seats
           </a>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/seats">
+            Seat Database
+          </a>
         </div>
 
         <div className={styles.eyebrow}>Seat Control</div>

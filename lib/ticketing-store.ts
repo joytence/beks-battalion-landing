@@ -90,6 +90,49 @@ type TicketOrderRecord = {
   ticketTierId: TicketTierId;
 };
 
+export type AdminSeatDatabaseHoldRecord = {
+  amountTotal: number | null;
+  checkoutFlow: TicketCheckoutFlow;
+  checkoutSessionId: string | null;
+  createdAt: Date;
+  currency: string | null;
+  expiresAt: Date;
+  holdId: string;
+  holdStatus: SeatHoldStatus;
+  orderId: string;
+  orderStatus: OrderStatus;
+  paidAt: Date | null;
+  purchaserEmail: string | null;
+  purchaserName: string | null;
+  purchaserPhone: string | null;
+  seatAssignmentMode: string;
+  seatLabel: string;
+  ticketQuantity: number;
+  ticketTierId: TicketTierId;
+  updatedAt: Date;
+};
+
+export type AdminSeatDatabaseTicketRecord = {
+  amountTotal: number | null;
+  checkoutFlow: TicketCheckoutFlow;
+  checkoutSessionId: string | null;
+  createdAt: Date;
+  currency: string | null;
+  orderId: string;
+  orderStatus: OrderStatus;
+  paidAt: Date | null;
+  purchaserEmail: string | null;
+  purchaserName: string | null;
+  purchaserPhone: string | null;
+  seatAssignmentMode: string;
+  seatLabel: string;
+  ticketId: string;
+  ticketIndex: number;
+  ticketStatus: TicketStatus;
+  ticketTierId: TicketTierId;
+  updatedAt: Date;
+};
+
 export class TicketingStoreError extends Error {
   status: number;
 
@@ -346,6 +389,96 @@ export async function getUnavailableSeatLabels() {
   return withStore(async (sql) => {
     await releaseExpiredSeatHolds(sql);
     return getUnavailableSeatLabelsForUpdate(sql);
+  });
+}
+
+export async function getAdminSeatDatabaseRecords() {
+  return withStore(async (sql) => {
+    await releaseExpiredSeatHolds(sql);
+
+    const holds = await sql<AdminSeatDatabaseHoldRecord[]>`
+      with ranked_holds as (
+        select
+          ticket_seat_holds.id as "holdId",
+          ticket_seat_holds.order_id as "orderId",
+          ticket_seat_holds.seat_label as "seatLabel",
+          ticket_seat_holds.ticket_tier_id as "ticketTierId",
+          ticket_seat_holds.status as "holdStatus",
+          ticket_seat_holds.expires_at as "expiresAt",
+          ticket_seat_holds.created_at as "createdAt",
+          ticket_seat_holds.updated_at as "updatedAt",
+          ticket_orders.checkout_session_id as "checkoutSessionId",
+          ticket_orders.checkout_flow as "checkoutFlow",
+          ticket_orders.ticket_quantity as "ticketQuantity",
+          ticket_orders.currency as "currency",
+          ticket_orders.amount_total as "amountTotal",
+          ticket_orders.purchaser_name as "purchaserName",
+          ticket_orders.purchaser_email as "purchaserEmail",
+          ticket_orders.purchaser_phone as "purchaserPhone",
+          ticket_orders.order_status as "orderStatus",
+          coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
+          ticket_orders.paid_at as "paidAt",
+          row_number() over (
+            partition by upper(ticket_seat_holds.seat_label)
+            order by ticket_seat_holds.updated_at desc, ticket_seat_holds.created_at desc
+          ) as hold_rank
+        from ticket_seat_holds
+        inner join ticket_orders on ticket_orders.id = ticket_seat_holds.order_id
+        where ticket_seat_holds.event_slug = ${eventDetails.slug}
+      )
+      select
+        "holdId",
+        "orderId",
+        "seatLabel",
+        "ticketTierId",
+        "holdStatus",
+        "expiresAt",
+        "createdAt",
+        "updatedAt",
+        "checkoutSessionId",
+        "checkoutFlow",
+        "ticketQuantity",
+        "currency",
+        "amountTotal",
+        "purchaserName",
+        "purchaserEmail",
+        "purchaserPhone",
+        "orderStatus",
+        "seatAssignmentMode",
+        "paidAt"
+      from ranked_holds
+      where hold_rank = 1
+      order by "seatLabel" asc
+    `;
+
+    const tickets = await sql<AdminSeatDatabaseTicketRecord[]>`
+      select
+        ticket_tickets.id as "ticketId",
+        ticket_tickets.order_id as "orderId",
+        ticket_tickets.seat_label as "seatLabel",
+        ticket_tickets.ticket_index as "ticketIndex",
+        ticket_tickets.ticket_status as "ticketStatus",
+        ticket_tickets.created_at as "createdAt",
+        ticket_tickets.updated_at as "updatedAt",
+        ticket_orders.checkout_session_id as "checkoutSessionId",
+        ticket_orders.checkout_flow as "checkoutFlow",
+        ticket_orders.ticket_tier_id as "ticketTierId",
+        ticket_orders.currency as "currency",
+        ticket_orders.amount_total as "amountTotal",
+        ticket_orders.purchaser_name as "purchaserName",
+        ticket_orders.purchaser_email as "purchaserEmail",
+        ticket_orders.purchaser_phone as "purchaserPhone",
+        ticket_orders.order_status as "orderStatus",
+        coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
+        ticket_orders.paid_at as "paidAt"
+      from ticket_tickets
+      inner join ticket_orders on ticket_orders.id = ticket_tickets.order_id
+      where ticket_orders.event_slug = ${eventDetails.slug}
+        and ticket_tickets.ticket_status = 'active'
+      order by ticket_tickets.seat_label asc, ticket_tickets.ticket_index asc
+    `;
+
+    return { holds, tickets };
   });
 }
 
