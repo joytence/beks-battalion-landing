@@ -74,6 +74,7 @@ type TicketOrderRecord = {
   amountTotal: number;
   checkoutFlow: TicketCheckoutFlow;
   checkoutSessionId: string;
+  createdAt: Date;
   customerReceiptEmailLockedAt: Date | null;
   customerReceiptEmailSentAt: Date | null;
   customerReceiptEmailStatus: string;
@@ -88,6 +89,7 @@ type TicketOrderRecord = {
   seatAssignmentMode: string;
   ticketQuantity: number;
   ticketTierId: TicketTierId;
+  updatedAt: Date;
 };
 
 export type AdminSeatDatabaseHoldRecord = {
@@ -133,6 +135,80 @@ export type AdminSeatDatabaseTicketRecord = {
   updatedAt: Date;
 };
 
+type AdminTicketSpreadsheetOrderRecord = {
+  amountTotal: number | null;
+  checkoutFlow: TicketCheckoutFlow;
+  checkoutSessionId: string | null;
+  createdAt: Date;
+  currency: string | null;
+  customerReceiptEmailSentAt: Date | null;
+  customerReceiptEmailStatus: string;
+  orderId: string;
+  orderStatus: OrderStatus;
+  paidAt: Date | null;
+  purchaserEmail: string | null;
+  purchaserName: string | null;
+  purchaserPhone: string | null;
+  seatAssignmentMode: string;
+  ticketQuantity: number;
+  ticketTierId: TicketTierId;
+  updatedAt: Date;
+};
+
+type AdminTicketSpreadsheetHoldRecord = {
+  createdAt: Date;
+  expiresAt: Date;
+  holdId: string;
+  holdStatus: SeatHoldStatus;
+  orderId: string;
+  seatLabel: string;
+  updatedAt: Date;
+};
+
+type AdminTicketSpreadsheetTicketRecord = {
+  createdAt: Date;
+  orderId: string;
+  originalSeatLabel: string;
+  seatLabel: string;
+  ticketId: string;
+  ticketIndex: number;
+  ticketStatus: TicketStatus;
+  updatedAt: Date;
+};
+
+export type AdminTicketSpreadsheetRecord = {
+  amountTotal: number | null;
+  checkoutFlow: TicketCheckoutFlow;
+  checkoutSessionId: string | null;
+  currency: string | null;
+  customerReceiptEmailSentAt: Date | null;
+  customerReceiptEmailStatus: string;
+  holdCreatedAt: Date | null;
+  holdExpiresAt: Date | null;
+  holdId: string | null;
+  holdStatus: SeatHoldStatus | null;
+  orderCreatedAt: Date;
+  orderId: string;
+  orderStatus: OrderStatus;
+  orderUpdatedAt: Date;
+  originalSeatLabel: string | null;
+  paidAt: Date | null;
+  purchaserEmail: string | null;
+  purchaserName: string | null;
+  purchaserPhone: string | null;
+  rowType: "hold" | "order" | "ticket" | "ticket+hold";
+  seatAssignmentMode: string;
+  seatLabel: string | null;
+  ticketCreatedAt: Date | null;
+  ticketId: string | null;
+  ticketIndex: number | null;
+  ticketQuantity: number;
+  ticketStatus: TicketStatus | null;
+  ticketTierId: TicketTierId;
+  ticketUpdatedAt: Date | null;
+  tierName: string;
+};
+
 export class TicketingStoreError extends Error {
   status: number;
 
@@ -168,6 +244,10 @@ function normalizeSeatLabels(seatLabels: string[]) {
         .filter(Boolean),
     ),
   );
+}
+
+function normalizeSeatLabel(seatLabel: string) {
+  return seatLabel.trim().toUpperCase();
 }
 
 function getPaymentIntentId(paymentIntent: Stripe.Checkout.Session["payment_intent"]) {
@@ -482,6 +562,216 @@ export async function getAdminSeatDatabaseRecords() {
   });
 }
 
+export async function getAdminTicketSpreadsheetRecords() {
+  return withStore(async (sql) => {
+    await releaseExpiredSeatHolds(sql);
+
+    const orders = await sql<AdminTicketSpreadsheetOrderRecord[]>`
+      select
+        ticket_orders.amount_total as "amountTotal",
+        ticket_orders.checkout_flow as "checkoutFlow",
+        ticket_orders.checkout_session_id as "checkoutSessionId",
+        ticket_orders.created_at as "createdAt",
+        ticket_orders.currency as "currency",
+        ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
+        coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
+        ticket_orders.id as "orderId",
+        ticket_orders.order_status as "orderStatus",
+        ticket_orders.paid_at as "paidAt",
+        ticket_orders.purchaser_email as "purchaserEmail",
+        ticket_orders.purchaser_name as "purchaserName",
+        ticket_orders.purchaser_phone as "purchaserPhone",
+        coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
+        ticket_orders.ticket_quantity as "ticketQuantity",
+        ticket_orders.ticket_tier_id as "ticketTierId",
+        ticket_orders.updated_at as "updatedAt"
+      from ticket_orders
+      where ticket_orders.event_slug = ${eventDetails.slug}
+      order by
+        coalesce(ticket_orders.paid_at, ticket_orders.updated_at, ticket_orders.created_at) desc,
+        ticket_orders.created_at desc
+    `;
+
+    const holds = await sql<AdminTicketSpreadsheetHoldRecord[]>`
+      with ranked_holds as (
+        select
+          ticket_seat_holds.id as "holdId",
+          ticket_seat_holds.order_id as "orderId",
+          ticket_seat_holds.seat_label as "seatLabel",
+          ticket_seat_holds.status as "holdStatus",
+          ticket_seat_holds.expires_at as "expiresAt",
+          ticket_seat_holds.created_at as "createdAt",
+          ticket_seat_holds.updated_at as "updatedAt",
+          row_number() over (
+            partition by ticket_seat_holds.order_id, upper(ticket_seat_holds.seat_label)
+            order by ticket_seat_holds.updated_at desc, ticket_seat_holds.created_at desc
+          ) as hold_rank
+        from ticket_seat_holds
+        where ticket_seat_holds.event_slug = ${eventDetails.slug}
+      )
+      select
+        "holdId",
+        "orderId",
+        "seatLabel",
+        "holdStatus",
+        "expiresAt",
+        "createdAt",
+        "updatedAt"
+      from ranked_holds
+      where hold_rank = 1
+      order by "orderId" asc, upper("seatLabel") asc
+    `;
+
+    const tickets = await sql<AdminTicketSpreadsheetTicketRecord[]>`
+      select
+        ticket_tickets.created_at as "createdAt",
+        ticket_tickets.order_id as "orderId",
+        ticket_tickets.original_seat_label as "originalSeatLabel",
+        ticket_tickets.seat_label as "seatLabel",
+        ticket_tickets.id as "ticketId",
+        ticket_tickets.ticket_index as "ticketIndex",
+        ticket_tickets.ticket_status as "ticketStatus",
+        ticket_tickets.updated_at as "updatedAt"
+      from ticket_tickets
+      inner join ticket_orders on ticket_orders.id = ticket_tickets.order_id
+      where ticket_orders.event_slug = ${eventDetails.slug}
+      order by ticket_tickets.order_id asc, ticket_tickets.ticket_index asc
+    `;
+
+    const holdsByOrder = new Map<string, AdminTicketSpreadsheetHoldRecord[]>();
+    const ticketsByOrder = new Map<string, AdminTicketSpreadsheetTicketRecord[]>();
+
+    for (const hold of holds) {
+      const existing = holdsByOrder.get(hold.orderId) || [];
+      existing.push(hold);
+      holdsByOrder.set(hold.orderId, existing);
+    }
+
+    for (const ticket of tickets) {
+      const existing = ticketsByOrder.get(ticket.orderId) || [];
+      existing.push(ticket);
+      ticketsByOrder.set(ticket.orderId, existing);
+    }
+
+    const rows: AdminTicketSpreadsheetRecord[] = [];
+
+    for (const order of orders) {
+      const tier = getTicketTierById(order.ticketTierId);
+      const orderHolds = holdsByOrder.get(order.orderId) || [];
+      const orderTickets = ticketsByOrder.get(order.orderId) || [];
+      const seatRows = new Map<
+        string,
+        {
+          hold?: AdminTicketSpreadsheetHoldRecord;
+          ticket?: AdminTicketSpreadsheetTicketRecord;
+        }
+      >();
+
+      for (const hold of orderHolds) {
+        seatRows.set(`seat:${normalizeSeatLabel(hold.seatLabel)}`, { hold });
+      }
+
+      for (const ticket of orderTickets) {
+        const keySeatLabel = ticket.seatLabel || ticket.originalSeatLabel;
+        const key = keySeatLabel ? `seat:${normalizeSeatLabel(keySeatLabel)}` : `ticket:${ticket.ticketId}`;
+        const existing = seatRows.get(key) || {};
+
+        existing.ticket = ticket;
+        seatRows.set(key, existing);
+      }
+
+      if (seatRows.size < 1) {
+        rows.push({
+          amountTotal: order.amountTotal,
+          checkoutFlow: order.checkoutFlow,
+          checkoutSessionId: order.checkoutSessionId,
+          currency: order.currency,
+          customerReceiptEmailSentAt: order.customerReceiptEmailSentAt,
+          customerReceiptEmailStatus: order.customerReceiptEmailStatus,
+          holdCreatedAt: null,
+          holdExpiresAt: null,
+          holdId: null,
+          holdStatus: null,
+          orderCreatedAt: order.createdAt,
+          orderId: order.orderId,
+          orderStatus: order.orderStatus,
+          orderUpdatedAt: order.updatedAt,
+          originalSeatLabel: null,
+          paidAt: order.paidAt,
+          purchaserEmail: order.purchaserEmail,
+          purchaserName: order.purchaserName,
+          purchaserPhone: order.purchaserPhone,
+          rowType: "order",
+          seatAssignmentMode: order.seatAssignmentMode,
+          seatLabel: null,
+          ticketCreatedAt: null,
+          ticketId: null,
+          ticketIndex: null,
+          ticketQuantity: order.ticketQuantity,
+          ticketStatus: null,
+          ticketTierId: order.ticketTierId,
+          ticketUpdatedAt: null,
+          tierName: tier?.name ?? order.ticketTierId,
+        });
+        continue;
+      }
+
+      const mergedRows = Array.from(seatRows.values()).sort((left, right) => {
+        const leftSeatLabel = left.ticket?.seatLabel || left.ticket?.originalSeatLabel || left.hold?.seatLabel || "";
+        const rightSeatLabel =
+          right.ticket?.seatLabel || right.ticket?.originalSeatLabel || right.hold?.seatLabel || "";
+
+        return leftSeatLabel.localeCompare(rightSeatLabel, undefined, { numeric: true, sensitivity: "base" });
+      });
+
+      for (const seatRow of mergedRows) {
+        const seatLabel =
+          seatRow.ticket?.seatLabel || seatRow.ticket?.originalSeatLabel || seatRow.hold?.seatLabel || null;
+        const rowType = seatRow.ticket
+          ? seatRow.hold
+            ? "ticket+hold"
+            : "ticket"
+          : "hold";
+
+        rows.push({
+          amountTotal: order.amountTotal,
+          checkoutFlow: order.checkoutFlow,
+          checkoutSessionId: order.checkoutSessionId,
+          currency: order.currency,
+          customerReceiptEmailSentAt: order.customerReceiptEmailSentAt,
+          customerReceiptEmailStatus: order.customerReceiptEmailStatus,
+          holdCreatedAt: seatRow.hold?.createdAt ?? null,
+          holdExpiresAt: seatRow.hold?.expiresAt ?? null,
+          holdId: seatRow.hold?.holdId ?? null,
+          holdStatus: seatRow.hold?.holdStatus ?? null,
+          orderCreatedAt: order.createdAt,
+          orderId: order.orderId,
+          orderStatus: order.orderStatus,
+          orderUpdatedAt: order.updatedAt,
+          originalSeatLabel: seatRow.ticket?.originalSeatLabel ?? null,
+          paidAt: order.paidAt,
+          purchaserEmail: order.purchaserEmail,
+          purchaserName: order.purchaserName,
+          purchaserPhone: order.purchaserPhone,
+          rowType,
+          seatAssignmentMode: order.seatAssignmentMode,
+          seatLabel,
+          ticketCreatedAt: seatRow.ticket?.createdAt ?? null,
+          ticketId: seatRow.ticket?.ticketId ?? null,
+          ticketIndex: seatRow.ticket?.ticketIndex ?? null,
+          ticketQuantity: order.ticketQuantity,
+          ticketStatus: seatRow.ticket?.ticketStatus ?? null,
+          ticketTierId: order.ticketTierId,
+          ticketUpdatedAt: seatRow.ticket?.updatedAt ?? null,
+          tierName: tier?.name ?? order.ticketTierId,
+        });
+      }
+    }
+
+    return rows;
+  });
+}
+
 export async function createReservedSeatCheckoutReservation({
   seatLabels,
   ticketTierId,
@@ -650,6 +940,7 @@ export async function updateTicketOrderPurchaserEmail(orderId: string, purchaser
         ticket_orders.amount_total as "amountTotal",
         ticket_orders.checkout_flow as "checkoutFlow",
         ticket_orders.checkout_session_id as "checkoutSessionId",
+        ticket_orders.created_at as "createdAt",
         ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
         ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
         coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
@@ -663,7 +954,8 @@ export async function updateTicketOrderPurchaserEmail(orderId: string, purchaser
         coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
         coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
         ticket_orders.ticket_quantity as "ticketQuantity",
-        ticket_orders.ticket_tier_id as "ticketTierId"
+        ticket_orders.ticket_tier_id as "ticketTierId",
+        ticket_orders.updated_at as "updatedAt"
     `;
 
     const order = updatedOrders[0];
@@ -705,6 +997,7 @@ export async function updateTicketOrderPurchaserPhone(orderId: string, purchaser
         ticket_orders.amount_total as "amountTotal",
         ticket_orders.checkout_flow as "checkoutFlow",
         ticket_orders.checkout_session_id as "checkoutSessionId",
+        ticket_orders.created_at as "createdAt",
         ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
         ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
         coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
@@ -718,7 +1011,8 @@ export async function updateTicketOrderPurchaserPhone(orderId: string, purchaser
         coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
         coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
         ticket_orders.ticket_quantity as "ticketQuantity",
-        ticket_orders.ticket_tier_id as "ticketTierId"
+        ticket_orders.ticket_tier_id as "ticketTierId",
+        ticket_orders.updated_at as "updatedAt"
     `;
 
     const order = updatedOrders[0];
@@ -753,6 +1047,7 @@ async function getTicketOrderByIdUsingSql(sql: Sql | TransactionSql, orderId: st
         ticket_orders.amount_total as "amountTotal",
         ticket_orders.checkout_flow as "checkoutFlow",
         ticket_orders.checkout_session_id as "checkoutSessionId",
+        ticket_orders.created_at as "createdAt",
         ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
         ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
         coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
@@ -766,7 +1061,8 @@ async function getTicketOrderByIdUsingSql(sql: Sql | TransactionSql, orderId: st
         coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
         coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
         ticket_orders.ticket_quantity as "ticketQuantity",
-        ticket_orders.ticket_tier_id as "ticketTierId"
+        ticket_orders.ticket_tier_id as "ticketTierId",
+        ticket_orders.updated_at as "updatedAt"
       from ticket_orders
       where ticket_orders.id = ${orderId}
       limit 1
@@ -803,6 +1099,7 @@ export async function getTicketOrderByCheckoutSessionId(checkoutSessionId: strin
         ticket_orders.amount_total as "amountTotal",
         ticket_orders.checkout_flow as "checkoutFlow",
         ticket_orders.checkout_session_id as "checkoutSessionId",
+        ticket_orders.created_at as "createdAt",
         ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
         ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
         coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
@@ -816,7 +1113,8 @@ export async function getTicketOrderByCheckoutSessionId(checkoutSessionId: strin
         coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
         coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
         ticket_orders.ticket_quantity as "ticketQuantity",
-        ticket_orders.ticket_tier_id as "ticketTierId"
+        ticket_orders.ticket_tier_id as "ticketTierId",
+        ticket_orders.updated_at as "updatedAt"
       from ticket_orders
       where ticket_orders.checkout_session_id = ${checkoutSessionId}
       limit 1
@@ -855,6 +1153,7 @@ export async function claimCustomerReceiptEmailSend(checkoutSessionId: string) {
           ticket_orders.amount_total as "amountTotal",
           ticket_orders.checkout_flow as "checkoutFlow",
           ticket_orders.checkout_session_id as "checkoutSessionId",
+          ticket_orders.created_at as "createdAt",
           ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
           ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
           coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
@@ -868,7 +1167,8 @@ export async function claimCustomerReceiptEmailSend(checkoutSessionId: string) {
           coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
           coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
           ticket_orders.ticket_quantity as "ticketQuantity",
-          ticket_orders.ticket_tier_id as "ticketTierId"
+          ticket_orders.ticket_tier_id as "ticketTierId",
+          ticket_orders.updated_at as "updatedAt"
         from ticket_orders
         where ticket_orders.checkout_session_id = ${checkoutSessionId}
         limit 1

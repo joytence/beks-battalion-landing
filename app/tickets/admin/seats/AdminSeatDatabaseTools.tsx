@@ -164,6 +164,7 @@ export function AdminSeatDatabaseTools() {
   const [adminSecret, setAdminSecret] = useState("");
   const [data, setData] = useState<SeatDatabaseResponse | null>(null);
   const [error, setError] = useState("");
+  const [exportingTickets, setExportingTickets] = useState(false);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<AdminSeatStatus>("all");
@@ -227,6 +228,49 @@ export function AdminSeatDatabaseTools() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+  }
+
+  async function downloadTicketSpreadsheet() {
+    if (!adminSecret.trim()) {
+      setError("Enter the admin secret first.");
+      return;
+    }
+
+    setExportingTickets(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/tickets/admin/export", {
+        headers: {
+          authorization: `Bearer ${adminSecret.trim()}`,
+        },
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json()) as { message?: string };
+        throw new Error(payload.message || "Ticket spreadsheet export failed.");
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition") || "";
+      const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+      const fileName = filenameMatch?.[1] || `joy-stage-ticket-data-${new Date().toISOString().slice(0, 10)}.csv`;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error ? caughtError.message : "Ticket spreadsheet export failed.",
+      );
+    } finally {
+      setExportingTickets(false);
+    }
   }
 
   return (
@@ -294,6 +338,14 @@ export function AdminSeatDatabaseTools() {
             type="button"
           >
             Download CSV
+          </button>
+          <button
+            className={styles.secondaryButton}
+            disabled={exportingTickets || !adminSecret.trim()}
+            onClick={downloadTicketSpreadsheet}
+            type="button"
+          >
+            {exportingTickets ? "Preparing Spreadsheet..." : "Download Ticket Spreadsheet"}
           </button>
         </div>
       </div>
