@@ -450,6 +450,19 @@ export default function Page() {
                     alt="JPM Lights and Sounds"
                   />
                 </a>
+                <a
+                  className="sponsor-cta__logo-link"
+                  href="https://www.ashmarieskincare.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Open Ashhmarie Skin Care"
+                >
+                  <img
+                    className="sponsor-cta__logo"
+                    src="/assets/ashhmarie-logo.webp"
+                    alt="Ashhmarie Skin Care"
+                  />
+                </a>
                 <img
                   className="sponsor-cta__logo sponsor-cta__logo--wide"
                   src="/assets/mrs-b-realty-transparent.png"
