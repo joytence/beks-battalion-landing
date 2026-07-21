@@ -61,6 +61,10 @@ export default function PrivacyPage() {
             site. After making a choice, use the Privacy Choices button to reset
             your selection. You can also clear cookies in your browser settings.
           </p>
+          <p>
+            For ticket purchase, event communication, and SMS-related rules, see
+            the Joy Stage Productions <a href="/terms">Terms and Conditions</a>.
+          </p>
         </div>
 
         <div className="privacy-section">

@@ -1398,6 +1398,12 @@ a {
   color: var(--gold-soft);
 }
 
+.footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
 .footer__social {
   display: flex;
   gap: 10px;

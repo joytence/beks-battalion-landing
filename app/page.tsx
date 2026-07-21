@@ -487,9 +487,14 @@ export default function Page() {
           <div>
             <strong className="footer__brand">Joy Stage Productions LLC</strong>
             <div>Event landing page concept for Beks Battalion.</div>
-            <a className="footer__privacy" href="/privacy">
-              Privacy Policy
-            </a>
+            <div className="footer__legal">
+              <a className="footer__privacy" href="/privacy">
+                Privacy Policy
+              </a>
+              <a className="footer__privacy" href="/terms">
+                Terms And Conditions
+              </a>
+            </div>
           </div>
 
           <div className="footer__social" aria-label="Social links">
