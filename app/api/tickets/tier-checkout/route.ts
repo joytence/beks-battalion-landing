@@ -16,11 +16,16 @@ import {
 
 type TierCheckoutPayload = {
   quantity?: unknown;
+  smsConsentOptIn?: unknown;
   ticketTierId?: unknown;
 };
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function isChecked(value: unknown) {
+  return value === true;
 }
 
 export async function POST(request: Request) {
@@ -46,6 +51,7 @@ export async function POST(request: Request) {
   }
 
   const payload = (await request.json()) as TierCheckoutPayload;
+  const smsConsentOptIn = isChecked(payload.smsConsentOptIn);
   const ticketTierId = clean(payload.ticketTierId);
   const tier = getTicketTierById(ticketTierId);
 
@@ -107,6 +113,8 @@ export async function POST(request: Request) {
         processing_fee_cents: String(processingFeeCents),
         seat_assignment: "unassigned",
         seat_labels: "",
+        sms_consent_opt_in: smsConsentOptIn ? "true" : "false",
+        sms_consent_source: "ticket_checkout",
         ticket_quantity: String(quantity),
         ticket_tier_id: tier.id,
       },
@@ -126,6 +134,8 @@ export async function POST(request: Request) {
           processing_fee_cents: String(processingFeeCents),
           seat_assignment: "unassigned",
           seat_labels: "",
+          sms_consent_opt_in: smsConsentOptIn ? "true" : "false",
+          sms_consent_source: "ticket_checkout",
           ticket_quantity: String(quantity),
           ticket_tier_id: tier.id,
         },

@@ -137,6 +137,7 @@ export function TicketCheckoutClient({
   const [mapHeight, setMapHeight] = useState(0);
   const [mapScale, setMapScale] = useState(1);
   const [hasManualZoom, setHasManualZoom] = useState(false);
+  const [smsConsentOptIn, setSmsConsentOptIn] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submittingTierId, setSubmittingTierId] = useState("");
 
@@ -296,6 +297,7 @@ export function TicketCheckoutClient({
       const response = await fetch("/api/tickets/checkout", {
         body: JSON.stringify({
           seatLabels: selectedSeats,
+          smsConsentOptIn,
           ticketTierId: selectedTierId,
         }),
         headers: {
@@ -340,6 +342,7 @@ export function TicketCheckoutClient({
       const response = await fetch("/api/tickets/tier-checkout", {
         body: JSON.stringify({
           quantity: getTierQuantity(tierId),
+          smsConsentOptIn,
           ticketTierId: tierId,
         }),
         headers: {
@@ -377,6 +380,32 @@ export function TicketCheckoutClient({
         <div className={styles.notice}>
           A separate {processingFeeLabel} processing fee applies to paid orders. The fee is shown
           before payment and itemized as its own line item in Stripe Checkout.
+        </div>
+
+        <div className={styles.consentBox}>
+          <div className={styles.consentHeader}>
+            <div className={styles.sectionEyebrow}>Optional SMS Consent</div>
+            <h3 className={styles.consentTitle}>Ticket Text Messages Are Optional</h3>
+          </div>
+          <label className={styles.consentLabelRow}>
+            <input
+              checked={smsConsentOptIn}
+              className={styles.consentCheckbox}
+              type="checkbox"
+              onChange={(event) => setSmsConsentOptIn(event.currentTarget.checked)}
+            />
+            <span className={styles.consentCopy}>
+              By checking this box and providing your mobile number during Stripe Checkout, you
+              agree to receive low-volume ticket-related text messages from Joy Stage Productions.
+              These may include ticket confirmations, secure ticket links, resend requests, and
+              order support updates. Message frequency varies. Message and data rates may apply.
+              Reply STOP to opt out and HELP for help. Consent is not a condition of purchase. See
+              our <a href="/privacy">Privacy Policy</a> and <a href="/terms">Terms and Conditions</a>.
+            </span>
+          </label>
+          <p className={styles.consentHint}>
+            Leave this box unchecked if you prefer email-only ticket delivery and support updates.
+          </p>
         </div>
 
         {seatMapOnly ? (

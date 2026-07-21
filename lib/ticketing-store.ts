@@ -38,6 +38,7 @@ type OrderTicketRecord = TicketRecord & {
 
 type CreateReservationParams = {
   seatLabels: string[];
+  smsConsentOptIn: boolean;
   ticketTierId: TicketTierId;
 };
 
@@ -93,6 +94,7 @@ type TicketOrderRecord = {
   purchaserName: string;
   purchaserPhone: string;
   seatAssignmentMode: string;
+  smsConsentOptIn?: boolean;
   ticketQuantity: number;
   ticketTierId: TicketTierId;
   updatedAt: Date;
@@ -320,6 +322,9 @@ async function initializeSchema(sql: Sql) {
       customer_receipt_sms_status text not null default 'pending',
       customer_receipt_sms_locked_at timestamptz,
       customer_receipt_sms_sent_at timestamptz,
+      sms_consent_opt_in boolean not null default false,
+      sms_consent_source text,
+      sms_consent_updated_at timestamptz,
       seat_assignment_mode text not null default 'reserved',
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now(),
@@ -361,6 +366,18 @@ async function initializeSchema(sql: Sql) {
   await sql`
     alter table ticket_orders
     add column if not exists customer_receipt_sms_sent_at timestamptz
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists sms_consent_opt_in boolean not null default false
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists sms_consent_source text
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists sms_consent_updated_at timestamptz
   `;
   await sql`
     create table if not exists ticket_seat_holds (
@@ -843,6 +860,7 @@ export async function getAdminTicketSpreadsheetRecords() {
 
 export async function createReservedSeatCheckoutReservation({
   seatLabels,
+  smsConsentOptIn,
   ticketTierId,
 }: CreateReservationParams) {
   return withStore(async (sql) =>
@@ -866,6 +884,9 @@ export async function createReservedSeatCheckoutReservation({
           id,
           event_slug,
           checkout_flow,
+          sms_consent_opt_in,
+          sms_consent_source,
+          sms_consent_updated_at,
           ticket_tier_id,
           ticket_quantity,
           order_status,
@@ -875,6 +896,9 @@ export async function createReservedSeatCheckoutReservation({
           ${orderId},
           ${eventDetails.slug},
           'reserved_seat',
+          ${smsConsentOptIn},
+          ${smsConsentOptIn ? "ticket_checkout" : null},
+          ${smsConsentOptIn ? new Date() : null},
           ${ticketTierId},
           ${validation.seatLabels.length},
           'pending',
@@ -1351,6 +1375,7 @@ export async function claimCustomerReceiptEmailSend(checkoutSessionId: string) {
           coalesce(ticket_orders.purchaser_name, '') as "purchaserName",
           coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
           coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
+          coalesce(ticket_orders.sms_consent_opt_in, false) as "smsConsentOptIn",
           ticket_orders.ticket_quantity as "ticketQuantity",
           ticket_orders.ticket_tier_id as "ticketTierId",
           ticket_orders.updated_at as "updatedAt"
@@ -1571,6 +1596,20 @@ export async function claimCustomerReceiptSmsSend(checkoutSessionId: string) {
       const order = orders[0];
 
       if (!order) {
+        return null;
+      }
+
+      if (!order.smsConsentOptIn) {
+        if (order.customerReceiptSmsStatus !== "skipped") {
+          await tx`
+            update ticket_orders
+            set customer_receipt_sms_status = 'skipped',
+                customer_receipt_sms_locked_at = null,
+                updated_at = now()
+            where id = ${order.id}
+          `;
+        }
+
         return null;
       }
 
