@@ -55,6 +55,13 @@ type SeatDatabaseResponse = {
   message?: string;
 };
 
+type PaidTicketActionResponse = {
+  message?: string;
+  purchaserEmail?: string;
+  purchaserPhone?: string;
+  receiptUrl?: string;
+};
+
 const statusOptions: { label: string; value: AdminSeatStatus }[] = [
   { label: "All seats", value: "all" },
   { label: "Unavailable only", value: "unavailable" },
@@ -162,10 +169,12 @@ function getSearchHaystack(seat: SeatRecord) {
 
 export function AdminSeatDatabaseTools() {
   const [adminSecret, setAdminSecret] = useState("");
+  const [actionStatus, setActionStatus] = useState("");
   const [data, setData] = useState<SeatDatabaseResponse | null>(null);
   const [error, setError] = useState("");
   const [exportingTickets, setExportingTickets] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [processingActionKey, setProcessingActionKey] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<AdminSeatStatus>("all");
 
@@ -189,6 +198,7 @@ export function AdminSeatDatabaseTools() {
     }
 
     setLoading(true);
+    setActionStatus("");
     setError("");
     setData(null);
 
@@ -273,6 +283,99 @@ export function AdminSeatDatabaseTools() {
     }
   }
 
+  function getPaidTicketHref(seat: SeatRecord) {
+    return seat.checkoutSessionId
+      ? `/tickets/confirmation?session_id=${encodeURIComponent(seat.checkoutSessionId)}`
+      : "";
+  }
+
+  function updateSeatContacts(
+    checkoutSessionId: string,
+    updates: {
+      purchaserEmail?: string;
+      purchaserPhone?: string;
+    },
+  ) {
+    setData((current) => {
+      if (!current) {
+        return current;
+      }
+
+      return {
+        ...current,
+        seats: current.seats.map((seat) =>
+          seat.checkoutSessionId === checkoutSessionId
+            ? {
+                ...seat,
+                ...(updates.purchaserEmail ? { purchaserEmail: updates.purchaserEmail } : {}),
+                ...(updates.purchaserPhone ? { purchaserPhone: updates.purchaserPhone } : {}),
+              }
+            : seat,
+        ),
+      };
+    });
+  }
+
+  async function runPaidTicketAction(seat: SeatRecord, channel: "email" | "text") {
+    if (!adminSecret.trim()) {
+      setError("Enter the admin secret first.");
+      return;
+    }
+
+    if (seat.status !== "paid" || !seat.checkoutSessionId) {
+      setError("Only paid ticket rows can be resent from this table.");
+      return;
+    }
+
+    const promptLabel =
+      channel === "email" ? "Enter the email address to resend this paid ticket to." : "Enter the phone number to text this paid ticket to.";
+    const promptValue =
+      channel === "email" ? seat.purchaserEmail || "" : seat.purchaserPhone || "";
+    const recipientValue = window.prompt(promptLabel, promptValue);
+
+    if (recipientValue === null) {
+      return;
+    }
+
+    const actionKey = `${channel}:${seat.checkoutSessionId}`;
+
+    setProcessingActionKey(actionKey);
+    setActionStatus("");
+    setError("");
+
+    try {
+      const response = await fetch("/api/tickets/admin/resend-paid", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${adminSecret.trim()}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          channel,
+          checkoutSessionId: seat.checkoutSessionId,
+          ...(channel === "email"
+            ? { recipientEmail: recipientValue.trim() }
+            : { recipientPhone: recipientValue.trim() }),
+        }),
+      });
+      const payload = (await response.json()) as PaidTicketActionResponse;
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Paid ticket resend failed.");
+      }
+
+      updateSeatContacts(seat.checkoutSessionId, {
+        purchaserEmail: payload.purchaserEmail,
+        purchaserPhone: payload.purchaserPhone,
+      });
+      setActionStatus(payload.message || "Paid ticket resent.");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Paid ticket resend failed.");
+    } finally {
+      setProcessingActionKey("");
+    }
+  }
+
   return (
     <div className={styles.adminPanelStack}>
       <div className={styles.notice}>
@@ -351,6 +454,7 @@ export function AdminSeatDatabaseTools() {
       </div>
 
       {error ? <div className={styles.error}>{error}</div> : null}
+      {actionStatus ? <div className={styles.notice}>{actionStatus}</div> : null}
 
       {data ? (
         <>
@@ -411,6 +515,7 @@ export function AdminSeatDatabaseTools() {
                   <th>Email</th>
                   <th>Phone</th>
                   <th>Order</th>
+                  <th>Actions</th>
                   <th>Updated</th>
                 </tr>
               </thead>
@@ -438,6 +543,38 @@ export function AdminSeatDatabaseTools() {
                           <span>{seat.orderId}</span>
                           {seat.amountTotal ? <span>{formatMoney(seat.amountTotal, seat.currency)}</span> : null}
                         </>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
+                    <td>
+                      {seat.status === "paid" && seat.checkoutSessionId ? (
+                        <div className={styles.seatActionStack}>
+                          <a
+                            className={`${styles.secondaryButton} ${styles.compactButton}`}
+                            href={getPaidTicketHref(seat)}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            Open Ticket
+                          </a>
+                          <button
+                            className={`${styles.secondaryButton} ${styles.compactButton}`}
+                            disabled={processingActionKey === `email:${seat.checkoutSessionId}`}
+                            onClick={() => runPaidTicketAction(seat, "email")}
+                            type="button"
+                          >
+                            {processingActionKey === `email:${seat.checkoutSessionId}` ? "Sending..." : "Resend Email"}
+                          </button>
+                          <button
+                            className={`${styles.secondaryButton} ${styles.compactButton}`}
+                            disabled={processingActionKey === `text:${seat.checkoutSessionId}`}
+                            onClick={() => runPaidTicketAction(seat, "text")}
+                            type="button"
+                          >
+                            {processingActionKey === `text:${seat.checkoutSessionId}` ? "Sending..." : "Resend Text"}
+                          </button>
+                        </div>
                       ) : (
                         "-"
                       )}
