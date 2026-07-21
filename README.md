@@ -55,10 +55,10 @@ Required environment variables for the ticketing flow:
 - `TICKET_ADMIN_SECRET` (optional, enables the admin reassignment endpoint)
 - `TICKET_HOLD_MINUTES` (optional, defaults to 30 and is clamped to Stripe Checkout’s 30-60 minute seat-hold window)
 - `NEXT_PUBLIC_SITE_URL` (recommended so Stripe success/cancel URLs point to the correct domain)
-- `TWILIO_ACCOUNT_SID` (optional, required only if you want admin-issued ticket SMS delivery)
-- `TWILIO_AUTH_TOKEN` (optional, required only if you want admin-issued ticket SMS delivery)
-- `TWILIO_FROM_NUMBER` (optional, use this or `TWILIO_MESSAGING_SERVICE_SID` for admin-issued ticket SMS)
-- `TWILIO_MESSAGING_SERVICE_SID` (optional alternative to `TWILIO_FROM_NUMBER` for admin-issued ticket SMS)
+- `TWILIO_ACCOUNT_SID` (optional, required if you want ticket SMS delivery for paid or admin-issued orders)
+- `TWILIO_AUTH_TOKEN` (optional, required if you want ticket SMS delivery for paid or admin-issued orders)
+- `TWILIO_FROM_NUMBER` (optional, use this or `TWILIO_MESSAGING_SERVICE_SID` for ticket SMS delivery)
+- `TWILIO_MESSAGING_SERVICE_SID` (optional alternative to `TWILIO_FROM_NUMBER` for ticket SMS delivery)
 
 Notes:
 
@@ -74,6 +74,7 @@ Notes:
 - The admin block route accepts `POST` to block seats and `DELETE` to unblock seats using the same admin secret header pattern.
 - The admin issue route accepts `POST` to convert already blocked seats into printable sponsor or comp tickets without Stripe Checkout.
 - The admin text route accepts `POST` to send the printable sponsor or comp pass link by SMS using the stored or newly entered recipient phone number.
+- Paid reserved-seat Stripe orders now attempt automatic SMS delivery after successful webhook fulfillment when Twilio is configured and the purchaser phone number is available.
 - The admin block payload shape is:
 
 ```json

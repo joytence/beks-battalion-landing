@@ -1,7 +1,14 @@
-import { eventDetails, formatEventDate, getAdminIssuedReceiptUrl, getTicketTierById } from "@/lib/ticketing";
-import type { getTicketOrderById } from "@/lib/ticketing-store";
+import {
+  eventDetails,
+  formatEventDate,
+  getAdminIssuedReceiptUrl,
+  getStripeReceiptUrl,
+  getTicketTierById,
+} from "@/lib/ticketing";
+import type { getTicketOrderByCheckoutSessionId, getTicketOrderById } from "@/lib/ticketing-store";
 
 type AdminIssuedOrderWithTickets = NonNullable<Awaited<ReturnType<typeof getTicketOrderById>>>;
+type PaidOrderWithTickets = NonNullable<Awaited<ReturnType<typeof getTicketOrderByCheckoutSessionId>>>;
 
 function cleanDigits(value: string) {
   return value.replace(/[^\d+]/g, "");
@@ -50,6 +57,10 @@ function getTwilioConfig() {
   };
 }
 
+export function isTwilioSmsConfigured() {
+  return Boolean(getTwilioConfig());
+}
+
 function buildAdminIssuedTicketSms(order: AdminIssuedOrderWithTickets) {
   const tier = getTicketTierById(order.ticketTierId);
 
@@ -73,20 +84,56 @@ function buildAdminIssuedTicketSms(order: AdminIssuedOrderWithTickets) {
   return { message, receiptUrl };
 }
 
-export async function sendAdminIssuedTicketSms(order: AdminIssuedOrderWithTickets) {
+function buildPaidTicketSms(order: PaidOrderWithTickets, livemode: boolean) {
+  const tier = getTicketTierById(order.ticketTierId);
+
+  if (!tier) {
+    throw new Error("Ticket tier could not be resolved for this paid order.");
+  }
+
+  if (!order.checkoutSessionId) {
+    throw new Error("Checkout session is missing for this paid order.");
+  }
+
+  const eventDate = formatEventDate(eventDetails.dateIso);
+  const seatList = order.tickets.map((ticket) => ticket.seatLabel).join(", ");
+  const receiptUrl = getStripeReceiptUrl(order.checkoutSessionId);
+  const recipientName = order.purchaserName || "Guest";
+  const modeLine = livemode ? "" : "Test mode only.";
+  const message = [
+    `Hi ${recipientName}, your Joy Stage Productions tickets are ready.`,
+    `${eventDetails.name}`,
+    `${eventDate}`,
+    `Seats: ${seatList}`,
+    `Tier: ${tier.name}`,
+    modeLine,
+    `Open or print your tickets: ${receiptUrl}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return { message, receiptUrl };
+}
+
+async function sendTicketSms({
+  message,
+  purchaserPhone,
+}: {
+  message: string;
+  purchaserPhone: string;
+}) {
   const twilio = getTwilioConfig();
 
   if (!twilio) {
     throw new Error("Twilio SMS is not configured yet.");
   }
 
-  const to = normalizePhoneNumber(order.purchaserPhone || "");
+  const to = normalizePhoneNumber(purchaserPhone || "");
 
   if (!to) {
-    throw new Error("Recipient phone number is missing or invalid for this issued order.");
+    throw new Error("Recipient phone number is missing or invalid for this order.");
   }
 
-  const { message, receiptUrl } = buildAdminIssuedTicketSms(order);
   const body = new URLSearchParams({
     Body: message,
     To: to,
@@ -109,7 +156,7 @@ export async function sendAdminIssuedTicketSms(order: AdminIssuedOrderWithTicket
 
   if (!response.ok) {
     const error = await response.text();
-    console.error("Twilio admin issued ticket SMS error:", error);
+    console.error("Twilio ticket SMS error:", error);
 
     if (error.includes('"code":20003') || error.includes("Primary compliance profile is not approved")) {
       throw new Error(
@@ -122,6 +169,37 @@ export async function sendAdminIssuedTicketSms(order: AdminIssuedOrderWithTicket
 
   return {
     purchaserPhone: to,
+  };
+}
+
+export async function sendAdminIssuedTicketSms(order: AdminIssuedOrderWithTickets) {
+  const { message, receiptUrl } = buildAdminIssuedTicketSms(order);
+  const smsResult = await sendTicketSms({
+    message,
+    purchaserPhone: order.purchaserPhone || "",
+  });
+
+  return {
+    purchaserPhone: smsResult.purchaserPhone,
+    receiptUrl,
+  };
+}
+
+export async function sendReservedSeatReceiptSms({
+  livemode,
+  order,
+}: {
+  livemode: boolean;
+  order: PaidOrderWithTickets;
+}) {
+  const { message, receiptUrl } = buildPaidTicketSms(order, livemode);
+  const smsResult = await sendTicketSms({
+    message,
+    purchaserPhone: order.purchaserPhone || "",
+  });
+
+  return {
+    purchaserPhone: smsResult.purchaserPhone,
     receiptUrl,
   };
 }

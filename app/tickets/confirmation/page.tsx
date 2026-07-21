@@ -7,15 +7,20 @@ import {
   sendReservedSeatReceiptEmail,
   sendReservedSeatSaleNotificationEmail,
 } from "@/lib/ticket-email";
+import { isTwilioSmsConfigured, normalizePhoneNumber, sendReservedSeatReceiptSms } from "@/lib/ticket-sms";
 import {
   claimAdminSaleNotificationEmailSend,
   claimCustomerReceiptEmailSend,
+  claimCustomerReceiptSmsSend,
   getOrderTicketsByCheckoutSessionId,
   isTicketingDatabaseConfigured,
   markAdminSaleNotificationEmailFailed,
   markAdminSaleNotificationEmailSent,
   markCustomerReceiptEmailFailed,
   markCustomerReceiptEmailSent,
+  markCustomerReceiptSmsFailed,
+  markCustomerReceiptSmsSent,
+  markCustomerReceiptSmsSkipped,
   syncReservedSeatPaymentConfirmed,
 } from "@/lib/ticketing-store";
 import {
@@ -128,6 +133,7 @@ export default async function TicketConfirmationPage({
     let claimedAdminSaleOrder:
       | Awaited<ReturnType<typeof claimAdminSaleNotificationEmailSend>>
       | null = null;
+    let claimedSmsOrder: Awaited<ReturnType<typeof claimCustomerReceiptSmsSend>> | null = null;
 
     try {
       await syncReservedSeatPaymentConfirmed(session);
@@ -153,12 +159,33 @@ export default async function TicketConfirmationPage({
         });
         await markAdminSaleNotificationEmailSent(claimedAdminSaleOrder.id);
       }
+
+      if (isTwilioSmsConfigured()) {
+        claimedSmsOrder = await claimCustomerReceiptSmsSend(session.id);
+
+        if (claimedSmsOrder) {
+          if (!normalizePhoneNumber(claimedSmsOrder.purchaserPhone || "")) {
+            await markCustomerReceiptSmsSkipped(claimedSmsOrder.id);
+            claimedSmsOrder = null;
+          } else {
+            await sendReservedSeatReceiptSms({
+              livemode: session.livemode ?? false,
+              order: claimedSmsOrder,
+            });
+            await markCustomerReceiptSmsSent(claimedSmsOrder.id);
+            claimedSmsOrder = null;
+          }
+        }
+      }
     } catch (error) {
       if (claimedOrder) {
         await markCustomerReceiptEmailFailed(claimedOrder.id);
       }
       if (claimedAdminSaleOrder) {
         await markAdminSaleNotificationEmailFailed(claimedAdminSaleOrder.id);
+      }
+      if (claimedSmsOrder) {
+        await markCustomerReceiptSmsFailed(claimedSmsOrder.id);
       }
 
       console.error("Confirmation page ticket email fallback error:", error);
