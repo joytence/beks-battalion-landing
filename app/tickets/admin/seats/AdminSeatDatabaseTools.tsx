@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { buildAdminRequestHeaders } from "../adminRequestHeaders";
 import styles from "../../ticketing.module.css";
 
 type AdminSeatStatus =
@@ -205,9 +206,7 @@ export function AdminSeatDatabaseTools() {
     try {
       const response = await fetch("/api/tickets/admin/seats", {
         cache: "no-store",
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
-        },
+        headers: buildAdminRequestHeaders(adminSecret),
         method: "POST",
       });
       const payload = (await response.json()) as SeatDatabaseResponse;
@@ -253,9 +252,7 @@ export function AdminSeatDatabaseTools() {
 
     try {
       const response = await fetch("/api/tickets/admin/export", {
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
-        },
+        headers: buildAdminRequestHeaders(adminSecret),
       });
 
       if (!response.ok) {
@@ -348,10 +345,9 @@ export function AdminSeatDatabaseTools() {
     try {
       const response = await fetch("/api/tickets/admin/resend-paid", {
         method: "POST",
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
+        headers: buildAdminRequestHeaders(adminSecret, {
           "content-type": "application/json",
-        },
+        }),
         body: JSON.stringify({
           channel,
           checkoutSessionId: seat.checkoutSessionId,

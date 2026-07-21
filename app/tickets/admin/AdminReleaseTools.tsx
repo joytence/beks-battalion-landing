@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { buildAdminRequestHeaders } from "./adminRequestHeaders";
 import styles from "../ticketing.module.css";
 
 type ReleaseResult = {
@@ -49,10 +50,9 @@ export function AdminReleaseTools() {
           notes: notes.trim(),
           seatLabels,
         }),
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
+        headers: buildAdminRequestHeaders(adminSecret, {
           "content-type": "application/json",
-        },
+        }),
         method: "POST",
       });
 

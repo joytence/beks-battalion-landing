@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { buildAdminRequestHeaders } from "./adminRequestHeaders";
 import styles from "../ticketing.module.css";
 
 type IssueResult = {
@@ -142,10 +143,9 @@ export function AdminIssueTools() {
           purchaserPhone: purchaserPhone.trim(),
           seatLabels,
         }),
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
+        headers: buildAdminRequestHeaders(adminSecret, {
           "content-type": "application/json",
-        },
+        }),
         method: "POST",
       });
 
@@ -183,10 +183,9 @@ export function AdminIssueTools() {
           orderId: result.orderId,
           recipientPhone: purchaserPhone.trim(),
         }),
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
+        headers: buildAdminRequestHeaders(adminSecret, {
           "content-type": "application/json",
-        },
+        }),
         method: "POST",
       });
 
@@ -247,10 +246,9 @@ export function AdminIssueTools() {
           orderId: result.orderId,
           recipientEmail: purchaserEmail.trim(),
         }),
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
+        headers: buildAdminRequestHeaders(adminSecret, {
           "content-type": "application/json",
-        },
+        }),
         method: "POST",
       });
 

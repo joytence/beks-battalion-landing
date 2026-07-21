@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { buildAdminRequestHeaders } from "../adminRequestHeaders";
 import styles from "../../ticketing.module.css";
 
 type RecoveryTicket = {
@@ -129,10 +130,9 @@ export function AdminPaidRecoveryTools() {
           query: options.query || "",
           recent: options.recent === true,
         }),
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
+        headers: buildAdminRequestHeaders(adminSecret, {
           "content-type": "application/json",
-        },
+        }),
         method: "POST",
       });
 
@@ -223,10 +223,9 @@ export function AdminPaidRecoveryTools() {
           recipientEmail: draft.email.trim(),
           recipientPhone: draft.phone.trim(),
         }),
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
+        headers: buildAdminRequestHeaders(adminSecret, {
           "content-type": "application/json",
-        },
+        }),
         method: "POST",
       });
 

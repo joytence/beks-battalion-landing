@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { buildAdminRequestHeaders } from "./adminRequestHeaders";
 import styles from "../ticketing.module.css";
 
 type AdminAction = "block" | "unblock";
@@ -53,10 +54,9 @@ export function AdminSeatTools() {
           notes: notes.trim(),
           seatLabels,
         }),
-        headers: {
-          authorization: `Bearer ${adminSecret.trim()}`,
+        headers: buildAdminRequestHeaders(adminSecret, {
           "content-type": "application/json",
-        },
+        }),
         method: action === "block" ? "POST" : "DELETE",
       });
 
