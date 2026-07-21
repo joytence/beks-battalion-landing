@@ -18,6 +18,9 @@ export default function TicketSeatDatabasePage() {
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/issue">
             Issue QR Tickets
           </a>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/recover">
+            Recover Paid Tickets
+          </a>
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/release">
             Release Paid Seats
           </a>

@@ -1120,6 +1120,15 @@ export async function updateTicketOrderPurchaserPhone(orderId: string, purchaser
 }
 
 async function getTicketOrderByIdUsingSql(sql: Sql | TransactionSql, orderId: string) {
+  const orders = await getTicketOrdersByIdsUsingSql(sql, [orderId]);
+  return orders[0] || null;
+}
+
+async function getTicketOrdersByIdsUsingSql(sql: Sql | TransactionSql, orderIds: string[]) {
+  if (orderIds.length < 1) {
+    return [];
+  }
+
   const orders = await sql<TicketOrderRecord[]>`
       select
         ticket_orders.amount_total as "amountTotal",
@@ -1148,14 +1157,8 @@ async function getTicketOrderByIdUsingSql(sql: Sql | TransactionSql, orderId: st
         ticket_orders.ticket_tier_id as "ticketTierId",
         ticket_orders.updated_at as "updatedAt"
       from ticket_orders
-      where ticket_orders.id = ${orderId}
-      limit 1
+      where ticket_orders.id in ${sql(orderIds)}
   `;
-  const order = orders[0];
-
-  if (!order) {
-    return null;
-  }
 
   const tickets = await sql<TicketRecord[]>`
       select
@@ -1166,14 +1169,38 @@ async function getTicketOrderByIdUsingSql(sql: Sql | TransactionSql, orderId: st
         ticket_tickets.ticket_index as "ticketIndex",
         ticket_tickets.ticket_status as "ticketStatus"
       from ticket_tickets
-      where ticket_tickets.order_id = ${orderId}
-      order by ticket_tickets.ticket_index asc
+      where ticket_tickets.order_id in ${sql(orderIds)}
+      order by ticket_tickets.order_id asc, ticket_tickets.ticket_index asc
   `;
 
-  return {
-    ...order,
-    tickets,
-  };
+  const orderMap = new Map(orders.map((order) => [order.id, order]));
+  const ticketsByOrderId = new Map<string, TicketRecord[]>();
+
+  for (const ticket of tickets) {
+    const existingTickets = ticketsByOrderId.get(ticket.orderId);
+
+    if (existingTickets) {
+      existingTickets.push(ticket);
+      continue;
+    }
+
+    ticketsByOrderId.set(ticket.orderId, [ticket]);
+  }
+
+  return orderIds
+    .map((orderId) => {
+      const order = orderMap.get(orderId);
+
+      if (!order) {
+        return null;
+      }
+
+      return {
+        ...order,
+        tickets: ticketsByOrderId.get(order.id) || [],
+      };
+    })
+    .filter((order) => order !== null);
 }
 
 export async function getTicketOrderByCheckoutSessionId(checkoutSessionId: string) {
@@ -1232,6 +1259,68 @@ export async function getTicketOrderByCheckoutSessionId(checkoutSessionId: strin
       ...order,
       tickets,
     };
+  });
+}
+
+export async function findPaidTicketOrders(searchTerm: string, limit = 10) {
+  return withStore(async (sql) => {
+    const normalizedSearchTerm = searchTerm.trim();
+
+    if (!normalizedSearchTerm) {
+      throw new TicketingStoreError("Enter a seat, order, checkout session, email, or phone number.", 400);
+    }
+
+    const normalizedSearchUpper = normalizedSearchTerm.toUpperCase();
+    const normalizedSearchLower = normalizedSearchTerm.toLowerCase();
+    const phoneDigits = normalizedSearchTerm.replace(/\D/g, "");
+    const clampedLimit = Math.max(1, Math.min(Math.round(limit), 25));
+
+    const matchedOrders = await sql<{ id: string }[]>`
+      select ticket_orders.id
+      from ticket_orders
+      left join ticket_tickets on ticket_tickets.order_id = ticket_orders.id
+      where ticket_orders.event_slug = ${eventDetails.slug}
+        and ticket_orders.order_status = 'paid'
+        and (
+          upper(coalesce(ticket_tickets.seat_label, '')) = ${normalizedSearchUpper}
+          or upper(coalesce(ticket_tickets.original_seat_label, '')) = ${normalizedSearchUpper}
+          or ticket_orders.id::text = ${normalizedSearchTerm}
+          or coalesce(ticket_orders.checkout_session_id, '') = ${normalizedSearchTerm}
+          or lower(coalesce(ticket_orders.purchaser_email, '')) = ${normalizedSearchLower}
+          or lower(coalesce(ticket_orders.purchaser_name, '')) like ${`%${normalizedSearchLower}%`}
+          or (
+            ${phoneDigits.length >= 7}
+            and regexp_replace(coalesce(ticket_orders.purchaser_phone, ''), '[^0-9]', '', 'g') like ${`%${phoneDigits}`}
+          )
+        )
+      group by ticket_orders.id, coalesce(ticket_orders.paid_at, ticket_orders.updated_at, ticket_orders.created_at)
+      order by coalesce(ticket_orders.paid_at, ticket_orders.updated_at, ticket_orders.created_at) desc
+      limit ${clampedLimit}
+    `;
+
+    return getTicketOrdersByIdsUsingSql(
+      sql,
+      matchedOrders.map((order) => order.id),
+    );
+  });
+}
+
+export async function listRecentPaidTicketOrders(limit = 10) {
+  return withStore(async (sql) => {
+    const clampedLimit = Math.max(1, Math.min(Math.round(limit), 25));
+    const recentOrders = await sql<{ id: string }[]>`
+      select ticket_orders.id
+      from ticket_orders
+      where ticket_orders.event_slug = ${eventDetails.slug}
+        and ticket_orders.order_status = 'paid'
+      order by coalesce(ticket_orders.paid_at, ticket_orders.updated_at, ticket_orders.created_at) desc
+      limit ${clampedLimit}
+    `;
+
+    return getTicketOrdersByIdsUsingSql(
+      sql,
+      recentOrders.map((order) => order.id),
+    );
   });
 }
 
