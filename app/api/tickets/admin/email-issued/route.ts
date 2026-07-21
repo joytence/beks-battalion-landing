@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAdminIssuedReceiptUrl, eventDetails, formatCurrency, formatEventDate, getTicketTierById } from "@/lib/ticketing";
 import {
+  getAuthorizedAdminSecret,
   getTicketAdminSecret,
   getTicketOrderById,
   isTicketAdminConfigured,
@@ -29,16 +30,6 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;");
 }
 
-function getAuthorizedSecret(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-
-  if (authorization.startsWith("Bearer ")) {
-    return authorization.slice("Bearer ".length).trim();
-  }
-
-  return request.headers.get("x-ticket-admin-secret")?.trim() || "";
-}
-
 function unauthorizedResponse() {
   return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
 }
@@ -63,7 +54,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "RESEND_API_KEY is not configured yet." }, { status: 500 });
   }
 
-  if (getAuthorizedSecret(request) !== getTicketAdminSecret()) {
+  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
     return unauthorizedResponse();
   }
 

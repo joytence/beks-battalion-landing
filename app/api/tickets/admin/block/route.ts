@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   blockSeatsForAdmin,
+  getAuthorizedAdminSecret,
   getTicketAdminSecret,
   isTicketAdminConfigured,
   TicketingStoreError,
@@ -31,16 +32,6 @@ function getSeatLabels(value: unknown, singleValue: unknown) {
   return seatLabels;
 }
 
-function getAuthorizedSecret(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-
-  if (authorization.startsWith("Bearer ")) {
-    return authorization.slice("Bearer ".length).trim();
-  }
-
-  return request.headers.get("x-ticket-admin-secret")?.trim() || "";
-}
-
 async function parsePayload(request: Request) {
   const payload = (await request.json()) as BlockPayload;
 
@@ -63,7 +54,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (getAuthorizedSecret(request) !== getTicketAdminSecret()) {
+  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
     return unauthorizedResponse();
   }
 
@@ -91,7 +82,7 @@ export async function DELETE(request: Request) {
     );
   }
 
-  if (getAuthorizedSecret(request) !== getTicketAdminSecret()) {
+  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
     return unauthorizedResponse();
   }
 

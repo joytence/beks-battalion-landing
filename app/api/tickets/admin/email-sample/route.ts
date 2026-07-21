@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { sendSampleReservedSeatReceiptEmail } from "@/lib/ticket-email";
-import { getTicketAdminSecret, isTicketAdminConfigured } from "@/lib/ticketing-store";
+import {
+  getAuthorizedAdminSecret,
+  getTicketAdminSecret,
+  isTicketAdminConfigured,
+} from "@/lib/ticketing-store";
 
 type SampleEmailPayload = {
   recipientEmail?: unknown;
@@ -8,16 +12,6 @@ type SampleEmailPayload = {
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function getAuthorizedSecret(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-
-  if (authorization.startsWith("Bearer ")) {
-    return authorization.slice("Bearer ".length).trim();
-  }
-
-  return request.headers.get("x-ticket-admin-secret")?.trim() || "";
 }
 
 function unauthorizedResponse() {
@@ -36,7 +30,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "RESEND_API_KEY is not configured yet." }, { status: 500 });
   }
 
-  if (getAuthorizedSecret(request) !== getTicketAdminSecret()) {
+  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
     return unauthorizedResponse();
   }
 

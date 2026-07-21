@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { sendAdminIssuedTicketSms, normalizePhoneNumber } from "@/lib/ticket-sms";
 import {
+  getAuthorizedAdminSecret,
   getTicketAdminSecret,
   getTicketOrderById,
   isTicketAdminConfigured,
@@ -16,16 +17,6 @@ type TextIssuedPayload = {
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function getAuthorizedSecret(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-
-  if (authorization.startsWith("Bearer ")) {
-    return authorization.slice("Bearer ".length).trim();
-  }
-
-  return request.headers.get("x-ticket-admin-secret")?.trim() || "";
 }
 
 function unauthorizedResponse() {
@@ -49,7 +40,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Twilio SMS is not configured yet." }, { status: 500 });
     }
 
-    if (getAuthorizedSecret(request) !== getTicketAdminSecret()) {
+    if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
       return unauthorizedResponse();
     }
 

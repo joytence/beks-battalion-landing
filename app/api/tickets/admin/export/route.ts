@@ -1,22 +1,13 @@
 import { NextResponse } from "next/server";
 import {
   getAdminTicketSpreadsheetRecords,
+  getAuthorizedAdminSecret,
   getTicketAdminSecret,
   isTicketAdminConfigured,
   isTicketingDatabaseConfigured,
   TicketingStoreError,
   type AdminTicketSpreadsheetRecord,
 } from "@/lib/ticketing-store";
-
-function getAuthorizedSecret(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-
-  if (authorization.startsWith("Bearer ")) {
-    return authorization.slice("Bearer ".length).trim();
-  }
-
-  return request.headers.get("x-ticket-admin-secret")?.trim() || "";
-}
 
 function formatDate(value: Date | null) {
   return value ? value.toISOString() : "";
@@ -116,7 +107,7 @@ export async function GET(request: Request) {
     );
   }
 
-  if (getAuthorizedSecret(request) !== getTicketAdminSecret()) {
+  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
     return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
   }
 

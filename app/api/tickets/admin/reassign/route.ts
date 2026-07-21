@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  getAuthorizedAdminSecret,
   getTicketAdminSecret,
   isTicketAdminConfigured,
   reassignReservedSeatTicket,
@@ -18,16 +19,6 @@ function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function getAuthorizedSecret(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-
-  if (authorization.startsWith("Bearer ")) {
-    return authorization.slice("Bearer ".length).trim();
-  }
-
-  return request.headers.get("x-ticket-admin-secret")?.trim() || "";
-}
-
 export async function POST(request: Request) {
   if (!isTicketAdminConfigured()) {
     return NextResponse.json(
@@ -36,7 +27,7 @@ export async function POST(request: Request) {
     );
   }
 
-  if (getAuthorizedSecret(request) !== getTicketAdminSecret()) {
+  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
     return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
   }
 
