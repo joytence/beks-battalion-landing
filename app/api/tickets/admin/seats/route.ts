@@ -7,6 +7,7 @@ import {
 } from "@/lib/ticketing";
 import {
   getAdminSeatDatabaseRecords,
+  getAuthorizedAdminSecret,
   getTicketAdminSecret,
   isTicketAdminConfigured,
   isTicketingDatabaseConfigured,
@@ -55,16 +56,6 @@ type AdminSeatResponseRecord = {
   tierName: string;
   updatedAt: string | null;
 };
-
-function getAuthorizedSecret(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-
-  if (authorization.startsWith("Bearer ")) {
-    return authorization.slice("Bearer ".length).trim();
-  }
-
-  return request.headers.get("x-ticket-admin-secret")?.trim() || "";
-}
 
 function normalizeSeatLabel(value: string) {
   return value.trim().toUpperCase();
@@ -143,7 +134,7 @@ export async function GET(request: Request) {
     );
   }
 
-  if (getAuthorizedSecret(request) !== getTicketAdminSecret()) {
+  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
     return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
   }
 

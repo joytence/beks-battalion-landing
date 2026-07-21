@@ -499,18 +499,36 @@ export function isTicketingDatabaseConfigured() {
   return Boolean(process.env.DATABASE_URL?.trim());
 }
 
+export function normalizeAdminSecretValue(value: string) {
+  return value
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/[\u2010-\u2015\u2212]/g, "-")
+    .trim();
+}
+
 export function isTicketAdminConfigured() {
-  return Boolean(process.env.TICKET_ADMIN_SECRET?.trim());
+  return Boolean(normalizeAdminSecretValue(process.env.TICKET_ADMIN_SECRET || ""));
 }
 
 export function getTicketAdminSecret() {
-  const secret = process.env.TICKET_ADMIN_SECRET?.trim();
+  const secret = normalizeAdminSecretValue(process.env.TICKET_ADMIN_SECRET || "");
 
   if (!secret) {
     throw new TicketingStoreError("TICKET_ADMIN_SECRET is not configured.", 500);
   }
 
   return secret;
+}
+
+export function getAuthorizedAdminSecret(request: Request) {
+  const authorization = request.headers.get("authorization") || "";
+
+  if (authorization.startsWith("Bearer ")) {
+    return normalizeAdminSecretValue(authorization.slice("Bearer ".length));
+  }
+
+  return normalizeAdminSecretValue(request.headers.get("x-ticket-admin-secret") || "");
 }
 
 export async function getUnavailableSeatLabels() {

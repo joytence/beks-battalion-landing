@@ -7,6 +7,7 @@ import {
 } from "@/lib/ticket-sms";
 import { getStripeReceiptUrl } from "@/lib/ticketing";
 import {
+  getAuthorizedAdminSecret,
   getTicketAdminSecret,
   getTicketOrderByCheckoutSessionId,
   isTicketAdminConfigured,
@@ -31,16 +32,6 @@ function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-function getAuthorizedSecret(request: Request) {
-  const authorization = request.headers.get("authorization") || "";
-
-  if (authorization.startsWith("Bearer ")) {
-    return authorization.slice("Bearer ".length).trim();
-  }
-
-  return request.headers.get("x-ticket-admin-secret")?.trim() || "";
-}
-
 function unauthorizedResponse() {
   return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
 }
@@ -62,7 +53,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "DATABASE_URL is required first." }, { status: 500 });
     }
 
-    if (getAuthorizedSecret(request) !== getTicketAdminSecret()) {
+    if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
       return unauthorizedResponse();
     }
 
