@@ -3,6 +3,8 @@ import type { getTicketOrderByCheckoutSessionId } from "@/lib/ticketing-store";
 
 const sender = "Joy Stage Productions <inquiries@joystageproductions.com>";
 const facebookPageUrl = "https://www.facebook.com/profile.php?id=61591769009057";
+const salesNotificationRecipient =
+  process.env.TICKET_SALES_NOTIFICATION_EMAIL?.trim() || "joy.tence@joystageproductions.com";
 
 type TicketOrderWithTickets = NonNullable<Awaited<ReturnType<typeof getTicketOrderByCheckoutSessionId>>>;
 
@@ -190,6 +192,117 @@ export async function sendReservedSeatReceiptEmail({
     const error = await response.text();
     console.error("Resend reserved-seat ticket email error:", error);
     throw new Error("The ticket email could not be sent yet. Please try again soon.");
+  }
+}
+
+export async function sendReservedSeatSaleNotificationEmail({
+  livemode,
+  order,
+}: {
+  livemode: boolean;
+  order: TicketOrderWithTickets;
+}) {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is not configured yet.");
+  }
+
+  const tier = getTicketTierById(order.ticketTierId);
+
+  if (!tier) {
+    throw new Error("Ticket tier could not be resolved for the paid order.");
+  }
+
+  const eventDate = formatEventDate(eventDetails.dateIso);
+  const seatList = order.tickets.map((ticket) => ticket.seatLabel).join(", ");
+  const receiptUrl = getStripeReceiptUrl(order.checkoutSessionId);
+  const subject = `${eventDetails.name} Sale Confirmed - ${order.purchaserName || "Guest"}`;
+  const livemodeLabel = livemode ? "Live payment" : "Stripe test payment";
+  const text = [
+    `${livemodeLabel} received for ${eventDetails.name}.`,
+    "",
+    `Purchaser: ${order.purchaserName || "Guest"}`,
+    `Email: ${order.purchaserEmail || "Not provided"}`,
+    `Phone: ${order.purchaserPhone || "Not provided"}`,
+    `Tier: ${tier.name}`,
+    `Seats: ${seatList}`,
+    `Quantity: ${order.ticketQuantity}`,
+    `Order Total: ${formatCurrency(order.amountTotal || 0, order.currency)}`,
+    `Date: ${eventDate}`,
+    `Venue: ${eventDetails.venue}`,
+    "",
+    "Open printable tickets:",
+    receiptUrl,
+  ].join("\n");
+  const html = `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #111;">
+      <h2 style="margin: 0 0 16px;">${escapeHtml(eventDetails.name)} Sale Confirmed</h2>
+      <p style="margin: 0 0 16px;"><strong>${escapeHtml(livemodeLabel)}</strong> received.</p>
+      <table style="border-collapse: collapse; width: 100%; max-width: 720px; margin: 0 0 20px;">
+        <tbody>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 180px; background: #f6f0df;">Purchaser</th>
+            <td style="border: 1px solid #ddd; padding: 10px;">${escapeHtml(order.purchaserName || "Guest")}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 180px; background: #f6f0df;">Email</th>
+            <td style="border: 1px solid #ddd; padding: 10px;">${escapeHtml(order.purchaserEmail || "Not provided")}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 180px; background: #f6f0df;">Phone</th>
+            <td style="border: 1px solid #ddd; padding: 10px;">${escapeHtml(order.purchaserPhone || "Not provided")}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 180px; background: #f6f0df;">Tier</th>
+            <td style="border: 1px solid #ddd; padding: 10px;">${escapeHtml(tier.name)}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 180px; background: #f6f0df;">Seats</th>
+            <td style="border: 1px solid #ddd; padding: 10px;">${escapeHtml(seatList)}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 180px; background: #f6f0df;">Quantity</th>
+            <td style="border: 1px solid #ddd; padding: 10px;">${escapeHtml(String(order.ticketQuantity))}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 180px; background: #f6f0df;">Order Total</th>
+            <td style="border: 1px solid #ddd; padding: 10px;">${escapeHtml(
+              formatCurrency(order.amountTotal || 0, order.currency),
+            )}</td>
+          </tr>
+          <tr>
+            <th style="border: 1px solid #ddd; padding: 10px; text-align: left; width: 180px; background: #f6f0df;">Date</th>
+            <td style="border: 1px solid #ddd; padding: 10px;">${escapeHtml(eventDate)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin: 0 0 18px;">
+        <a href="${escapeHtml(receiptUrl)}" style="display: inline-block; padding: 12px 18px; border-radius: 999px; background: #111; color: #fff; text-decoration: none; font-weight: 700;">
+          Open Printable Tickets
+        </a>
+      </p>
+      <p style="margin: 0;">Notification recipient: ${escapeHtml(salesNotificationRecipient)}</p>
+    </div>
+  `;
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: sender,
+      html,
+      subject,
+      text,
+      to: [salesNotificationRecipient],
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error("Resend reserved-seat sale notification email error:", error);
+    throw new Error("The sale notification email could not be sent yet. Please try again soon.");
   }
 }
 

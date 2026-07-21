@@ -1,8 +1,14 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
-import { sendReservedSeatReceiptEmail } from "@/lib/ticket-email";
+import {
+  sendReservedSeatReceiptEmail,
+  sendReservedSeatSaleNotificationEmail,
+} from "@/lib/ticket-email";
 import { getStripe, getStripeWebhookSecret, isStripeConfigured, isStripeWebhookConfigured } from "@/lib/stripe";
 import {
+  claimAdminSaleNotificationEmailSend,
+  markAdminSaleNotificationEmailFailed,
+  markAdminSaleNotificationEmailSent,
   claimCustomerReceiptEmailSend,
   markCustomerReceiptEmailFailed,
   markCustomerReceiptEmailSent,
@@ -50,6 +56,9 @@ export async function POST(request: Request) {
       let claimedOrder:
         | Awaited<ReturnType<typeof claimCustomerReceiptEmailSend>>
         | null = null;
+      let claimedAdminSaleOrder:
+        | Awaited<ReturnType<typeof claimAdminSaleNotificationEmailSend>>
+        | null = null;
 
       try {
         await syncReservedSeatPaymentConfirmed(session);
@@ -61,10 +70,25 @@ export async function POST(request: Request) {
             order: claimedOrder,
           });
           await markCustomerReceiptEmailSent(claimedOrder.id);
+          claimedOrder = null;
+        }
+
+        claimedAdminSaleOrder = await claimAdminSaleNotificationEmailSend(session.id);
+
+        if (claimedAdminSaleOrder) {
+          await sendReservedSeatSaleNotificationEmail({
+            livemode: session.livemode ?? false,
+            order: claimedAdminSaleOrder,
+          });
+          await markAdminSaleNotificationEmailSent(claimedAdminSaleOrder.id);
+          claimedAdminSaleOrder = null;
         }
       } catch (error) {
         if (claimedOrder) {
           await markCustomerReceiptEmailFailed(claimedOrder.id);
+        }
+        if (claimedAdminSaleOrder) {
+          await markAdminSaleNotificationEmailFailed(claimedAdminSaleOrder.id);
         }
         if (error instanceof TicketingStoreError) {
           return NextResponse.json({ message: error.message }, { status: error.status });

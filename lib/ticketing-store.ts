@@ -71,6 +71,9 @@ type IssueAdminTicketsParams = {
 };
 
 type TicketOrderRecord = {
+  adminSaleEmailLockedAt: Date | null;
+  adminSaleEmailSentAt: Date | null;
+  adminSaleEmailStatus: string;
   amountTotal: number;
   checkoutFlow: TicketCheckoutFlow;
   checkoutSessionId: string;
@@ -78,6 +81,9 @@ type TicketOrderRecord = {
   customerReceiptEmailLockedAt: Date | null;
   customerReceiptEmailSentAt: Date | null;
   customerReceiptEmailStatus: string;
+  customerReceiptSmsLockedAt: Date | null;
+  customerReceiptSmsSentAt: Date | null;
+  customerReceiptSmsStatus: string;
   currency: string;
   eventSlug: string;
   id: string;
@@ -254,6 +260,18 @@ function getPaymentIntentId(paymentIntent: Stripe.Checkout.Session["payment_inte
   return typeof paymentIntent === "string" ? paymentIntent : paymentIntent?.id || null;
 }
 
+function getStripePurchaserName(session: Stripe.Checkout.Session) {
+  return session.customer_details?.name?.trim() || "";
+}
+
+function getStripePurchaserEmail(session: Stripe.Checkout.Session) {
+  return session.customer_details?.email?.trim() || session.customer_email?.trim() || "";
+}
+
+function getStripePurchaserPhone(session: Stripe.Checkout.Session) {
+  return session.customer_details?.phone?.trim() || "";
+}
+
 function getAdminIssuedCheckoutSessionId(orderId: string) {
   return `admin_issued_${orderId}`;
 }
@@ -293,14 +311,32 @@ async function initializeSchema(sql: Sql) {
       purchaser_email text,
       purchaser_phone text,
       order_status text not null default 'pending',
+      admin_sale_email_status text not null default 'pending',
+      admin_sale_email_locked_at timestamptz,
+      admin_sale_email_sent_at timestamptz,
       customer_receipt_email_status text not null default 'pending',
       customer_receipt_email_locked_at timestamptz,
       customer_receipt_email_sent_at timestamptz,
+      customer_receipt_sms_status text not null default 'pending',
+      customer_receipt_sms_locked_at timestamptz,
+      customer_receipt_sms_sent_at timestamptz,
       seat_assignment_mode text not null default 'reserved',
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now(),
       paid_at timestamptz
     )
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists admin_sale_email_status text not null default 'pending'
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists admin_sale_email_locked_at timestamptz
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists admin_sale_email_sent_at timestamptz
   `;
   await sql`
     alter table ticket_orders
@@ -313,6 +349,18 @@ async function initializeSchema(sql: Sql) {
   await sql`
     alter table ticket_orders
     add column if not exists customer_receipt_email_sent_at timestamptz
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists customer_receipt_sms_status text not null default 'pending'
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists customer_receipt_sms_locked_at timestamptz
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists customer_receipt_sms_sent_at timestamptz
   `;
   await sql`
     create table if not exists ticket_seat_holds (
@@ -569,6 +617,9 @@ export async function getAdminTicketSpreadsheetRecords() {
     const orders = await sql<AdminTicketSpreadsheetOrderRecord[]>`
       select
         ticket_orders.amount_total as "amountTotal",
+        ticket_orders.admin_sale_email_locked_at as "adminSaleEmailLockedAt",
+        ticket_orders.admin_sale_email_sent_at as "adminSaleEmailSentAt",
+        coalesce(ticket_orders.admin_sale_email_status, 'pending') as "adminSaleEmailStatus",
         ticket_orders.checkout_flow as "checkoutFlow",
         ticket_orders.checkout_session_id as "checkoutSessionId",
         ticket_orders.created_at as "createdAt",
@@ -938,12 +989,18 @@ export async function updateTicketOrderPurchaserEmail(orderId: string, purchaser
       where id = ${orderId}
       returning
         ticket_orders.amount_total as "amountTotal",
+        ticket_orders.admin_sale_email_locked_at as "adminSaleEmailLockedAt",
+        ticket_orders.admin_sale_email_sent_at as "adminSaleEmailSentAt",
+        coalesce(ticket_orders.admin_sale_email_status, 'pending') as "adminSaleEmailStatus",
         ticket_orders.checkout_flow as "checkoutFlow",
         ticket_orders.checkout_session_id as "checkoutSessionId",
         ticket_orders.created_at as "createdAt",
         ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
         ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
         coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
+        ticket_orders.customer_receipt_sms_locked_at as "customerReceiptSmsLockedAt",
+        ticket_orders.customer_receipt_sms_sent_at as "customerReceiptSmsSentAt",
+        coalesce(ticket_orders.customer_receipt_sms_status, 'pending') as "customerReceiptSmsStatus",
         coalesce(ticket_orders.currency, 'usd') as currency,
         ticket_orders.event_slug as "eventSlug",
         ticket_orders.id,
@@ -1001,6 +1058,9 @@ export async function updateTicketOrderPurchaserPhone(orderId: string, purchaser
         ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
         ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
         coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
+        ticket_orders.customer_receipt_sms_locked_at as "customerReceiptSmsLockedAt",
+        ticket_orders.customer_receipt_sms_sent_at as "customerReceiptSmsSentAt",
+        coalesce(ticket_orders.customer_receipt_sms_status, 'pending') as "customerReceiptSmsStatus",
         coalesce(ticket_orders.currency, 'usd') as currency,
         ticket_orders.event_slug as "eventSlug",
         ticket_orders.id,
@@ -1045,12 +1105,18 @@ async function getTicketOrderByIdUsingSql(sql: Sql | TransactionSql, orderId: st
   const orders = await sql<TicketOrderRecord[]>`
       select
         ticket_orders.amount_total as "amountTotal",
+        ticket_orders.admin_sale_email_locked_at as "adminSaleEmailLockedAt",
+        ticket_orders.admin_sale_email_sent_at as "adminSaleEmailSentAt",
+        coalesce(ticket_orders.admin_sale_email_status, 'pending') as "adminSaleEmailStatus",
         ticket_orders.checkout_flow as "checkoutFlow",
         ticket_orders.checkout_session_id as "checkoutSessionId",
         ticket_orders.created_at as "createdAt",
         ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
         ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
         coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
+        ticket_orders.customer_receipt_sms_locked_at as "customerReceiptSmsLockedAt",
+        ticket_orders.customer_receipt_sms_sent_at as "customerReceiptSmsSentAt",
+        coalesce(ticket_orders.customer_receipt_sms_status, 'pending') as "customerReceiptSmsStatus",
         coalesce(ticket_orders.currency, 'usd') as currency,
         ticket_orders.event_slug as "eventSlug",
         ticket_orders.id,
@@ -1097,12 +1163,18 @@ export async function getTicketOrderByCheckoutSessionId(checkoutSessionId: strin
     const orders = await sql<TicketOrderRecord[]>`
       select
         ticket_orders.amount_total as "amountTotal",
+        ticket_orders.admin_sale_email_locked_at as "adminSaleEmailLockedAt",
+        ticket_orders.admin_sale_email_sent_at as "adminSaleEmailSentAt",
+        coalesce(ticket_orders.admin_sale_email_status, 'pending') as "adminSaleEmailStatus",
         ticket_orders.checkout_flow as "checkoutFlow",
         ticket_orders.checkout_session_id as "checkoutSessionId",
         ticket_orders.created_at as "createdAt",
         ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
         ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
         coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
+        ticket_orders.customer_receipt_sms_locked_at as "customerReceiptSmsLockedAt",
+        ticket_orders.customer_receipt_sms_sent_at as "customerReceiptSmsSentAt",
+        coalesce(ticket_orders.customer_receipt_sms_status, 'pending') as "customerReceiptSmsStatus",
         coalesce(ticket_orders.currency, 'usd') as currency,
         ticket_orders.event_slug as "eventSlug",
         ticket_orders.id,
@@ -1151,12 +1223,18 @@ export async function claimCustomerReceiptEmailSend(checkoutSessionId: string) {
       const orders = await tx<TicketOrderRecord[]>`
         select
           ticket_orders.amount_total as "amountTotal",
+          ticket_orders.admin_sale_email_locked_at as "adminSaleEmailLockedAt",
+          ticket_orders.admin_sale_email_sent_at as "adminSaleEmailSentAt",
+          coalesce(ticket_orders.admin_sale_email_status, 'pending') as "adminSaleEmailStatus",
           ticket_orders.checkout_flow as "checkoutFlow",
           ticket_orders.checkout_session_id as "checkoutSessionId",
           ticket_orders.created_at as "createdAt",
           ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
           ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
           coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
+          ticket_orders.customer_receipt_sms_locked_at as "customerReceiptSmsLockedAt",
+          ticket_orders.customer_receipt_sms_sent_at as "customerReceiptSmsSentAt",
+          coalesce(ticket_orders.customer_receipt_sms_status, 'pending') as "customerReceiptSmsStatus",
           coalesce(ticket_orders.currency, 'usd') as currency,
           ticket_orders.event_slug as "eventSlug",
           ticket_orders.id,
@@ -1245,6 +1323,231 @@ export async function markCustomerReceiptEmailFailed(orderId: string) {
   });
 }
 
+export async function claimAdminSaleNotificationEmailSend(checkoutSessionId: string) {
+  return withStore(async (sql) =>
+    sql.begin(async (tx) => {
+      const orders = await tx<TicketOrderRecord[]>`
+        select
+          ticket_orders.amount_total as "amountTotal",
+          ticket_orders.admin_sale_email_locked_at as "adminSaleEmailLockedAt",
+          ticket_orders.admin_sale_email_sent_at as "adminSaleEmailSentAt",
+          coalesce(ticket_orders.admin_sale_email_status, 'pending') as "adminSaleEmailStatus",
+          ticket_orders.checkout_flow as "checkoutFlow",
+          ticket_orders.checkout_session_id as "checkoutSessionId",
+          ticket_orders.created_at as "createdAt",
+          ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
+          ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
+          coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
+          ticket_orders.customer_receipt_sms_locked_at as "customerReceiptSmsLockedAt",
+          ticket_orders.customer_receipt_sms_sent_at as "customerReceiptSmsSentAt",
+          coalesce(ticket_orders.customer_receipt_sms_status, 'pending') as "customerReceiptSmsStatus",
+          coalesce(ticket_orders.currency, 'usd') as currency,
+          ticket_orders.event_slug as "eventSlug",
+          ticket_orders.id,
+          ticket_orders.order_status as "orderStatus",
+          ticket_orders.paid_at as "paidAt",
+          coalesce(ticket_orders.purchaser_email, '') as "purchaserEmail",
+          coalesce(ticket_orders.purchaser_name, '') as "purchaserName",
+          coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
+          coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
+          ticket_orders.ticket_quantity as "ticketQuantity",
+          ticket_orders.ticket_tier_id as "ticketTierId",
+          ticket_orders.updated_at as "updatedAt"
+        from ticket_orders
+        where ticket_orders.checkout_session_id = ${checkoutSessionId}
+        limit 1
+        for update
+      `;
+      const order = orders[0];
+
+      if (!order) {
+        return null;
+      }
+
+      if (order.orderStatus !== "paid" || order.adminSaleEmailSentAt) {
+        return null;
+      }
+
+      const lockedAt = order.adminSaleEmailLockedAt?.getTime() || 0;
+      const lockIsFresh = lockedAt > Date.now() - 15 * 60_000;
+
+      if (order.adminSaleEmailStatus === "sending" && lockIsFresh) {
+        return null;
+      }
+
+      await tx`
+        update ticket_orders
+        set admin_sale_email_status = 'sending',
+            admin_sale_email_locked_at = now(),
+            updated_at = now()
+        where id = ${order.id}
+      `;
+
+      const tickets = await tx<TicketRecord[]>`
+        select
+          ticket_tickets.id,
+          ticket_tickets.order_id as "orderId",
+          ticket_tickets.original_seat_label as "originalSeatLabel",
+          ticket_tickets.seat_label as "seatLabel",
+          ticket_tickets.ticket_index as "ticketIndex",
+          ticket_tickets.ticket_status as "ticketStatus"
+        from ticket_tickets
+        where ticket_tickets.order_id = ${order.id}
+        order by ticket_tickets.ticket_index asc
+      `;
+
+      return {
+        ...order,
+        tickets,
+      };
+    }),
+  );
+}
+
+export async function markAdminSaleNotificationEmailSent(orderId: string) {
+  return withStore(async (sql) => {
+    await sql`
+      update ticket_orders
+      set admin_sale_email_status = 'sent',
+          admin_sale_email_sent_at = now(),
+          admin_sale_email_locked_at = null,
+          updated_at = now()
+      where id = ${orderId}
+    `;
+  });
+}
+
+export async function markAdminSaleNotificationEmailFailed(orderId: string) {
+  return withStore(async (sql) => {
+    await sql`
+      update ticket_orders
+      set admin_sale_email_status = 'failed',
+          admin_sale_email_locked_at = null,
+          updated_at = now()
+      where id = ${orderId}
+    `;
+  });
+}
+
+export async function claimCustomerReceiptSmsSend(checkoutSessionId: string) {
+  return withStore(async (sql) =>
+    sql.begin(async (tx) => {
+      const orders = await tx<TicketOrderRecord[]>`
+        select
+          ticket_orders.amount_total as "amountTotal",
+          ticket_orders.checkout_flow as "checkoutFlow",
+          ticket_orders.checkout_session_id as "checkoutSessionId",
+          ticket_orders.created_at as "createdAt",
+          ticket_orders.customer_receipt_email_locked_at as "customerReceiptEmailLockedAt",
+          ticket_orders.customer_receipt_email_sent_at as "customerReceiptEmailSentAt",
+          coalesce(ticket_orders.customer_receipt_email_status, 'pending') as "customerReceiptEmailStatus",
+          ticket_orders.customer_receipt_sms_locked_at as "customerReceiptSmsLockedAt",
+          ticket_orders.customer_receipt_sms_sent_at as "customerReceiptSmsSentAt",
+          coalesce(ticket_orders.customer_receipt_sms_status, 'pending') as "customerReceiptSmsStatus",
+          coalesce(ticket_orders.currency, 'usd') as currency,
+          ticket_orders.event_slug as "eventSlug",
+          ticket_orders.id,
+          ticket_orders.order_status as "orderStatus",
+          ticket_orders.paid_at as "paidAt",
+          coalesce(ticket_orders.purchaser_email, '') as "purchaserEmail",
+          coalesce(ticket_orders.purchaser_name, '') as "purchaserName",
+          coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
+          coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
+          ticket_orders.ticket_quantity as "ticketQuantity",
+          ticket_orders.ticket_tier_id as "ticketTierId",
+          ticket_orders.updated_at as "updatedAt"
+        from ticket_orders
+        where ticket_orders.checkout_session_id = ${checkoutSessionId}
+        limit 1
+        for update
+      `;
+      const order = orders[0];
+
+      if (!order) {
+        return null;
+      }
+
+      if (
+        order.orderStatus !== "paid" ||
+        order.customerReceiptSmsSentAt ||
+        order.customerReceiptSmsStatus === "skipped"
+      ) {
+        return null;
+      }
+
+      const lockedAt = order.customerReceiptSmsLockedAt?.getTime() || 0;
+      const lockIsFresh = lockedAt > Date.now() - 15 * 60_000;
+
+      if (order.customerReceiptSmsStatus === "sending" && lockIsFresh) {
+        return null;
+      }
+
+      await tx`
+        update ticket_orders
+        set customer_receipt_sms_status = 'sending',
+            customer_receipt_sms_locked_at = now(),
+            updated_at = now()
+        where id = ${order.id}
+      `;
+
+      const tickets = await tx<TicketRecord[]>`
+        select
+          ticket_tickets.id,
+          ticket_tickets.order_id as "orderId",
+          ticket_tickets.original_seat_label as "originalSeatLabel",
+          ticket_tickets.seat_label as "seatLabel",
+          ticket_tickets.ticket_index as "ticketIndex",
+          ticket_tickets.ticket_status as "ticketStatus"
+        from ticket_tickets
+        where ticket_tickets.order_id = ${order.id}
+        order by ticket_tickets.ticket_index asc
+      `;
+
+      return {
+        ...order,
+        tickets,
+      };
+    }),
+  );
+}
+
+export async function markCustomerReceiptSmsSent(orderId: string) {
+  return withStore(async (sql) => {
+    await sql`
+      update ticket_orders
+      set customer_receipt_sms_status = 'sent',
+          customer_receipt_sms_sent_at = now(),
+          customer_receipt_sms_locked_at = null,
+          updated_at = now()
+      where id = ${orderId}
+    `;
+  });
+}
+
+export async function markCustomerReceiptSmsFailed(orderId: string) {
+  return withStore(async (sql) => {
+    await sql`
+      update ticket_orders
+      set customer_receipt_sms_status = 'failed',
+          customer_receipt_sms_locked_at = null,
+          updated_at = now()
+      where id = ${orderId}
+    `;
+  });
+}
+
+export async function markCustomerReceiptSmsSkipped(orderId: string) {
+  return withStore(async (sql) => {
+    await sql`
+      update ticket_orders
+      set customer_receipt_sms_status = 'skipped',
+          customer_receipt_sms_locked_at = null,
+          updated_at = now()
+      where id = ${orderId}
+    `;
+  });
+}
+
 export async function syncReservedSeatPaymentConfirmed(session: Stripe.Checkout.Session) {
   if (session.metadata?.checkout_flow !== "reserved_seat") {
     return;
@@ -1277,9 +1580,9 @@ export async function syncReservedSeatPaymentConfirmed(session: Stripe.Checkout.
         update ticket_orders
         set checkout_session_id = ${session.id},
             payment_intent_id = ${paymentIntentId},
-            purchaser_name = ${session.customer_details?.name?.trim() || ""},
-            purchaser_email = ${session.customer_details?.email?.trim() || ""},
-            purchaser_phone = ${session.customer_details?.phone?.trim() || ""},
+            purchaser_name = ${getStripePurchaserName(session)},
+            purchaser_email = ${getStripePurchaserEmail(session)},
+            purchaser_phone = ${getStripePurchaserPhone(session)},
             currency = ${session.currency || "usd"},
             amount_total = ${session.amount_total || 0},
             order_status = 'paid',

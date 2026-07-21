@@ -3,7 +3,21 @@ import QRCode from "qrcode";
 import { PrintTicketButton } from "../PrintTicketButton";
 import styles from "../ticketing.module.css";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
-import { getOrderTicketsByCheckoutSessionId, isTicketingDatabaseConfigured } from "@/lib/ticketing-store";
+import {
+  sendReservedSeatReceiptEmail,
+  sendReservedSeatSaleNotificationEmail,
+} from "@/lib/ticket-email";
+import {
+  claimAdminSaleNotificationEmailSend,
+  claimCustomerReceiptEmailSend,
+  getOrderTicketsByCheckoutSessionId,
+  isTicketingDatabaseConfigured,
+  markAdminSaleNotificationEmailFailed,
+  markAdminSaleNotificationEmailSent,
+  markCustomerReceiptEmailFailed,
+  markCustomerReceiptEmailSent,
+  syncReservedSeatPaymentConfirmed,
+} from "@/lib/ticketing-store";
 import {
   createSignedTicketToken,
   createTicketCode,
@@ -101,12 +115,58 @@ export default async function TicketConfirmationPage({
   }
 
   const purchaserName = session.customer_details?.name?.trim() || "Guest";
-  const purchaserEmail = session.customer_details?.email?.trim() || "";
+  const purchaserEmail = session.customer_details?.email?.trim() || session.customer_email?.trim() || "";
   const currency = session.currency || "usd";
   const amountTotal = session.amount_total || tier.priceCents * quantity;
   const siteUrl = getSiteUrl();
   const eventDate = formatEventDate(eventDetails.dateIso);
   const assignmentFieldLabel = getTicketAssignmentFieldLabel(checkoutFlow);
+  let emailDeliveryNotice = "";
+
+  if (isTicketingDatabaseConfigured() && checkoutFlow === "reserved_seat") {
+    let claimedOrder: Awaited<ReturnType<typeof claimCustomerReceiptEmailSend>> | null = null;
+    let claimedAdminSaleOrder:
+      | Awaited<ReturnType<typeof claimAdminSaleNotificationEmailSend>>
+      | null = null;
+
+    try {
+      await syncReservedSeatPaymentConfirmed(session);
+      claimedOrder = await claimCustomerReceiptEmailSend(session.id);
+
+      if (claimedOrder) {
+        await sendReservedSeatReceiptEmail({
+          livemode: session.livemode ?? false,
+          order: claimedOrder,
+        });
+        await markCustomerReceiptEmailSent(claimedOrder.id);
+        emailDeliveryNotice = claimedOrder.purchaserEmail
+          ? `Ticket email sent to ${claimedOrder.purchaserEmail}.`
+          : "";
+      }
+
+      claimedAdminSaleOrder = await claimAdminSaleNotificationEmailSend(session.id);
+
+      if (claimedAdminSaleOrder) {
+        await sendReservedSeatSaleNotificationEmail({
+          livemode: session.livemode ?? false,
+          order: claimedAdminSaleOrder,
+        });
+        await markAdminSaleNotificationEmailSent(claimedAdminSaleOrder.id);
+      }
+    } catch (error) {
+      if (claimedOrder) {
+        await markCustomerReceiptEmailFailed(claimedOrder.id);
+      }
+      if (claimedAdminSaleOrder) {
+        await markAdminSaleNotificationEmailFailed(claimedAdminSaleOrder.id);
+      }
+
+      console.error("Confirmation page ticket email fallback error:", error);
+      emailDeliveryNotice =
+        "We confirmed your payment, but the ticket email could not be sent yet. Please use this page to print your tickets.";
+    }
+  }
+
   const persistedTickets =
     isTicketingDatabaseConfigured() && checkoutFlow === "reserved_seat"
       ? await getOrderTicketsByCheckoutSessionId(session.id)
@@ -166,6 +226,7 @@ export default async function TicketConfirmationPage({
             only and should not be treated as live event admission.
           </div>
         ) : null}
+        {emailDeliveryNotice ? <div className={styles.notice}>{emailDeliveryNotice}</div> : null}
         <div className={styles.statusActions}>
           <PrintTicketButton />
           <a className={styles.secondaryButton} href="/tickets">
