@@ -204,9 +204,11 @@ export function AdminSeatDatabaseTools() {
 
     try {
       const response = await fetch("/api/tickets/admin/seats", {
+        cache: "no-store",
         headers: {
           authorization: `Bearer ${adminSecret.trim()}`,
         },
+        method: "POST",
       });
       const payload = (await response.json()) as SeatDatabaseResponse;
 

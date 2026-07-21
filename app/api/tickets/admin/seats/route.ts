@@ -126,7 +126,7 @@ function createEmptySummary(): SeatSummary {
   };
 }
 
-export async function GET(request: Request) {
+async function handleSeatDatabaseRequest(request: Request) {
   if (!isTicketAdminConfigured()) {
     return NextResponse.json(
       { message: "TICKET_ADMIN_SECRET is not configured yet." },
@@ -282,4 +282,12 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+export async function GET(request: Request) {
+  return handleSeatDatabaseRequest(request);
+}
+
+export async function POST(request: Request) {
+  return handleSeatDatabaseRequest(request);
 }
