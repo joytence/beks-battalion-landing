@@ -463,11 +463,19 @@ export default function Page() {
                     alt="Ashhmarie Skin Care"
                   />
                 </a>
-                <img
-                  className="sponsor-cta__logo sponsor-cta__logo--wide"
-                  src="/assets/mrs-b-realty-transparent.png"
-                  alt="Mrs. B's Realty"
-                />
+                <a
+                  className="sponsor-cta__logo-link"
+                  href="https://bernadethhuertas.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Open Mrs. B's Realty"
+                >
+                  <img
+                    className="sponsor-cta__logo sponsor-cta__logo--wide"
+                    src="/assets/mrs-b-realty-transparent.png"
+                    alt="Mrs. B's Realty"
+                  />
+                </a>
                 <img
                   className="sponsor-cta__logo sponsor-cta__logo--luna"
                   src="/assets/luna-band-ph.png"
