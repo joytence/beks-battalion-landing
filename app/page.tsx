@@ -56,6 +56,14 @@ const lineup = [
     image: "/assets/robin-hamby.jpg",
     position: "center center",
   },
+  {
+    name: "David Cantela",
+    role: "Special Performers",
+    badge: "DC",
+    tone: "orange",
+    image: "/assets/david-cantela.jpg",
+    position: "center top",
+  },
 ] as const;
 
 function TicketStars({ count }: { count: number }) {
@@ -417,7 +425,7 @@ export default function Page() {
 
           <div className="panel sponsor-cta">
             <div className="sponsor-cta__stack">
-              <div className="sponsor-cta__current">To know more about our sponsors click their logos.</div>
+              <div className="sponsor-cta__current">CLICK SPONSOR LOGOS FOR MORE INFORMATION ABOUT THEM</div>
               <div className="sponsor-cta__logos" aria-label="Current sponsor logos">
                 <img
                   className="sponsor-cta__logo"
