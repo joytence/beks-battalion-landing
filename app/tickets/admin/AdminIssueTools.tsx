@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { adminInputProps, adminTextAreaProps } from "./adminFormProps";
 import { buildAdminRequestHeaders } from "./adminRequestHeaders";
 import styles from "../ticketing.module.css";
 
 type IssueResult = {
+  autoBlockedSeatLabels?: string[];
   checkoutSessionId: string;
   issuedSeatLabels: string[];
   message?: string;
@@ -29,6 +31,36 @@ type TextResult = {
   purchaserPhone?: string;
   receiptUrl?: string;
   seats?: string[];
+};
+
+type AvailableSeat = {
+  blockLabel: string;
+  label: string;
+  layoutLabel: string;
+  row: string;
+  tierId: string;
+  tierName: string;
+};
+
+type AvailabilityResult = {
+  availableSeats: AvailableSeat[];
+  blockedSeats: AvailableSeat[];
+  generatedAt: string;
+  message?: string;
+  summary: {
+    availableByTier: {
+      count: number;
+      tierId: string;
+      tierName: string;
+    }[];
+    blockedByTier: {
+      count: number;
+      tierId: string;
+      tierName: string;
+    }[];
+    totalAvailable: number;
+    totalBlocked: number;
+  };
 };
 
 async function readResponsePayload<T extends { message?: string }>(response: Response): Promise<T> {
@@ -94,8 +126,23 @@ function buildSmsHref(phone: string, message: string) {
   return `sms:${recipient}?&body=${encodeURIComponent(message)}`;
 }
 
+function formatGeneratedAt(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export function AdminIssueTools() {
-  const [adminSecret, setAdminSecret] = useState("");
+  const [autoBlockOpenSeats, setAutoBlockOpenSeats] = useState(false);
+  const [availability, setAvailability] = useState<AvailabilityResult | null>(null);
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilitySearch, setAvailabilitySearch] = useState("");
   const [blockoutReason, setBlockoutReason] = useState("");
   const [notes, setNotes] = useState("");
   const [purchaserEmail, setPurchaserEmail] = useState("");
@@ -112,17 +159,141 @@ export function AdminIssueTools() {
   const [submitting, setSubmitting] = useState(false);
 
   const seatLabels = useMemo(() => normalizeSeatLabels(seatLabelInput), [seatLabelInput]);
+  const selectedSeatSet = useMemo(() => new Set(seatLabels), [seatLabels]);
   const manualTextMessage = useMemo(() => buildManualTextMessage(result), [result]);
   const manualTextHref = useMemo(
     () => buildSmsHref(result?.purchaserPhone || purchaserPhone, manualTextMessage),
     [manualTextMessage, purchaserPhone, result?.purchaserPhone],
   );
-  const canSubmit =
-    adminSecret.trim().length > 0 && purchaserName.trim().length > 0 && seatLabels.length > 0;
+  const canSubmit = purchaserName.trim().length > 0 && seatLabels.length > 0;
+
+  const filteredAvailableSeats = useMemo(() => {
+    const searchTerm = availabilitySearch.trim().toLowerCase();
+
+    return (availability?.availableSeats || []).filter((seat) => {
+      if (!searchTerm) {
+        return true;
+      }
+
+      return [seat.label, seat.layoutLabel, seat.row, seat.blockLabel, seat.tierName]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm);
+    });
+  }, [availability?.availableSeats, availabilitySearch]);
+
+  const filteredBlockedSeats = useMemo(() => {
+    const searchTerm = availabilitySearch.trim().toLowerCase();
+
+    return (availability?.blockedSeats || []).filter((seat) => {
+      if (!searchTerm) {
+        return true;
+      }
+
+      return [seat.label, seat.layoutLabel, seat.row, seat.blockLabel, seat.tierName]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm);
+    });
+  }, [availability?.blockedSeats, availabilitySearch]);
+
+  const availableSeatsByTier = useMemo(() => {
+    const groups = new Map<string, { count: number; seats: AvailableSeat[]; tierName: string }>();
+
+    for (const seat of filteredAvailableSeats) {
+      const current = groups.get(seat.tierId);
+
+      if (current) {
+        current.count += 1;
+        current.seats.push(seat);
+        continue;
+      }
+
+      groups.set(seat.tierId, {
+        count: 1,
+        seats: [seat],
+        tierName: seat.tierName,
+      });
+    }
+
+    return Array.from(groups.entries()).map(([tierId, value]) => ({
+      count: value.count,
+      seats: value.seats,
+      tierId,
+      tierName: value.tierName,
+    }));
+  }, [filteredAvailableSeats]);
+
+  const blockedSeatsByTier = useMemo(() => {
+    const groups = new Map<string, { count: number; seats: AvailableSeat[]; tierName: string }>();
+
+    for (const seat of filteredBlockedSeats) {
+      const current = groups.get(seat.tierId);
+
+      if (current) {
+        current.count += 1;
+        current.seats.push(seat);
+        continue;
+      }
+
+      groups.set(seat.tierId, {
+        count: 1,
+        seats: [seat],
+        tierName: seat.tierName,
+      });
+    }
+
+    return Array.from(groups.entries()).map(([tierId, value]) => ({
+      count: value.count,
+      seats: value.seats,
+      tierId,
+      tierName: value.tierName,
+    }));
+  }, [filteredBlockedSeats]);
+
+  useEffect(() => {
+    void loadAvailability();
+  }, []);
+
+  async function loadAvailability() {
+    setAvailabilityLoading(true);
+    setAvailabilityError("");
+
+    try {
+      const response = await fetch("/api/tickets/admin/issue-availability", {
+        cache: "no-store",
+        headers: buildAdminRequestHeaders(),
+      });
+      const payload = await readResponsePayload<AvailabilityResult>(response);
+
+      if (!response.ok) {
+        throw new Error(payload.message || "Open seat lookup failed.");
+      }
+
+      setAvailability(payload);
+    } catch (caughtError) {
+      setAvailabilityError(caughtError instanceof Error ? caughtError.message : "Open seat lookup failed.");
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  }
+
+  function toggleSeatLabel(seatLabel: string) {
+    const nextSeatLabels = normalizeSeatLabels(seatLabelInput);
+    const nextSeatSet = new Set(nextSeatLabels);
+
+    if (nextSeatSet.has(seatLabel)) {
+      nextSeatSet.delete(seatLabel);
+    } else {
+      nextSeatSet.add(seatLabel);
+    }
+
+    setSeatLabelInput(Array.from(nextSeatSet).join(", "));
+  }
 
   async function submit() {
     if (!canSubmit) {
-      setError("Enter the admin secret, recipient name, and at least one blocked seat.");
+      setError("Enter the recipient name and at least one seat.");
       return;
     }
 
@@ -137,13 +308,14 @@ export function AdminIssueTools() {
       const response = await fetch("/api/tickets/admin/issue", {
         body: JSON.stringify({
           actorLabel: blockoutReason.trim() || "Admin Issue",
+          autoBlockOpenSeats,
           notes: notes.trim(),
           purchaserEmail: purchaserEmail.trim(),
           purchaserName: purchaserName.trim(),
           purchaserPhone: purchaserPhone.trim(),
           seatLabels,
         }),
-        headers: buildAdminRequestHeaders(adminSecret, {
+        headers: buildAdminRequestHeaders({
           "content-type": "application/json",
         }),
         method: "POST",
@@ -156,6 +328,7 @@ export function AdminIssueTools() {
       }
 
       setResult(payload);
+      await loadAvailability();
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Admin ticket issue failed.");
     } finally {
@@ -165,11 +338,6 @@ export function AdminIssueTools() {
 
   async function sendText() {
     if (!result) {
-      return;
-    }
-
-    if (!adminSecret.trim()) {
-      setError("Enter the admin secret before sending the text.");
       return;
     }
 
@@ -183,7 +351,7 @@ export function AdminIssueTools() {
           orderId: result.orderId,
           recipientPhone: purchaserPhone.trim(),
         }),
-        headers: buildAdminRequestHeaders(adminSecret, {
+        headers: buildAdminRequestHeaders({
           "content-type": "application/json",
         }),
         method: "POST",
@@ -231,11 +399,6 @@ export function AdminIssueTools() {
       return;
     }
 
-    if (!adminSecret.trim()) {
-      setError("Enter the admin secret before sending the email.");
-      return;
-    }
-
     setSendingEmail(true);
     setError("");
     setEmailStatus("");
@@ -246,7 +409,7 @@ export function AdminIssueTools() {
           orderId: result.orderId,
           recipientEmail: purchaserEmail.trim(),
         }),
-        headers: buildAdminRequestHeaders(adminSecret, {
+        headers: buildAdminRequestHeaders({
           "content-type": "application/json",
         }),
         method: "POST",
@@ -277,26 +440,126 @@ export function AdminIssueTools() {
   return (
     <div className={styles.adminPanelStack}>
       <div className={styles.notice}>
-        Issue this only after the seats are already blocked. This generates printable QR tickets
-        without Stripe checkout and keeps those seats unavailable in the venue map.
+        Use blocked seats if they are already reserved, or turn on auto-block mode to issue open
+        seats in one step. The lists below now show both open seats and blocked seats that are
+        ready to be assigned to a specific guest.
+      </div>
+
+      <div className={styles.paymentStatusBox}>
+        <div className={styles.paymentStatusLabel}>Issue Seat Pools</div>
+        <div className={styles.adminActionRow}>
+          <button
+            className={styles.secondaryButton}
+            disabled={availabilityLoading}
+            onClick={() => void loadAvailability()}
+            type="button"
+          >
+            {availabilityLoading ? "Refreshing Open Seats..." : "Refresh Open Seats"}
+          </button>
+        </div>
+        {availability ? (
+          <>
+            <div className={styles.seatDatabaseSummaryGrid}>
+              <div>
+                <span>Total Open Seats</span>
+                <strong>{availability.summary.totalAvailable}</strong>
+              </div>
+              <div>
+                <span>Total Blocked Seats</span>
+                <strong>{availability.summary.totalBlocked}</strong>
+              </div>
+              {availability.summary.availableByTier.map((tier) => (
+                <div key={tier.tierId}>
+                  <span>{tier.tierName} Open</span>
+                  <strong>{tier.count}</strong>
+                </div>
+              ))}
+              {availability.summary.blockedByTier.map((tier) => (
+                <div key={`blocked-${tier.tierId}`}>
+                  <span>{tier.tierName} Blocked</span>
+                  <strong>{tier.count}</strong>
+                </div>
+              ))}
+            </div>
+            <div className={styles.notice}>Last refreshed {formatGeneratedAt(availability.generatedAt)}</div>
+          </>
+        ) : null}
+        <label className={styles.field}>
+          <span>Search Open Or Blocked Seats</span>
+          <input
+            {...adminInputProps}
+            className={styles.textInput}
+            onChange={(event) => setAvailabilitySearch(event.target.value)}
+            placeholder="Search by seat, row, section, or tier"
+            type="text"
+            value={availabilitySearch}
+          />
+        </label>
+        {availabilityError ? <div className={styles.error}>{availabilityError}</div> : null}
+        {availableSeatsByTier.length > 0 ? (
+          <div className={styles.openSeatTierStack}>
+            {availableSeatsByTier.map((tier) => (
+              <div className={styles.openSeatTierCard} key={tier.tierId}>
+                <div className={styles.openSeatTierHeader}>
+                  <strong>{tier.tierName}</strong>
+                  <span>{tier.count} open</span>
+                </div>
+                <div className={styles.openSeatChipGrid}>
+                  {tier.seats.map((seat) => (
+                    <button
+                      className={`${styles.openSeatChip} ${selectedSeatSet.has(seat.label) ? styles.openSeatChipSelected : ""}`}
+                      key={seat.label}
+                      onClick={() => toggleSeatLabel(seat.label)}
+                      type="button"
+                    >
+                      <strong>{seat.label}</strong>
+                      <span>
+                        {seat.blockLabel} • Row {seat.row}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {blockedSeatsByTier.length > 0 ? (
+          <div className={styles.openSeatTierStack}>
+            {blockedSeatsByTier.map((tier) => (
+              <div className={styles.openSeatTierCard} key={`blocked-${tier.tierId}`}>
+                <div className={styles.openSeatTierHeader}>
+                  <strong>{tier.tierName}</strong>
+                  <span>{tier.count} blocked and ready</span>
+                </div>
+                <div className={styles.openSeatChipGrid}>
+                  {tier.seats.map((seat) => (
+                    <button
+                      className={`${styles.openSeatChip} ${selectedSeatSet.has(seat.label) ? styles.openSeatChipSelected : ""}`}
+                      key={`blocked-${seat.label}`}
+                      onClick={() => toggleSeatLabel(seat.label)}
+                      type="button"
+                    >
+                      <strong>{seat.label}</strong>
+                      <span>
+                        {seat.blockLabel} • Row {seat.row}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {availability && !availabilityLoading && availableSeatsByTier.length < 1 && blockedSeatsByTier.length < 1 ? (
+          <div className={styles.notice}>No seats matched the current search.</div>
+        ) : null}
       </div>
 
       <div className={styles.adminFormGrid}>
         <label className={styles.field}>
-          <span>Admin Secret</span>
-          <input
-            autoComplete="off"
-            className={styles.textInput}
-            onChange={(event) => setAdminSecret(event.target.value)}
-            placeholder="Enter TICKET_ADMIN_SECRET"
-            type="password"
-            value={adminSecret}
-          />
-        </label>
-
-        <label className={styles.field}>
           <span>Blockout Reason</span>
           <input
+            {...adminInputProps}
             className={styles.textInput}
             onChange={(event) => setBlockoutReason(event.target.value)}
             placeholder="Sponsor, family hold, comp guest"
@@ -310,6 +573,7 @@ export function AdminIssueTools() {
         <label className={styles.field}>
           <span>Recipient Name</span>
           <input
+            {...adminInputProps}
             className={styles.textInput}
             onChange={(event) => setPurchaserName(event.target.value)}
             placeholder="Enter guest or sponsor name"
@@ -321,6 +585,7 @@ export function AdminIssueTools() {
         <label className={styles.field}>
           <span>Recipient Email</span>
           <input
+            {...adminInputProps}
             className={styles.textInput}
             onChange={(event) => setPurchaserEmail(event.target.value)}
             placeholder="Optional email for recordkeeping"
@@ -334,6 +599,7 @@ export function AdminIssueTools() {
         <label className={styles.field}>
           <span>Recipient Phone</span>
           <input
+            {...adminInputProps}
             className={styles.textInput}
             onChange={(event) => setPurchaserPhone(event.target.value)}
             placeholder="Optional phone number"
@@ -343,9 +609,21 @@ export function AdminIssueTools() {
         </label>
       </div>
 
+      <label className={styles.checkboxField}>
+        <input
+          checked={autoBlockOpenSeats}
+          onChange={(event) => setAutoBlockOpenSeats(event.target.checked)}
+          type="checkbox"
+        />
+        <span>
+          Auto-block open seats during issue so I do not have to block them separately first.
+        </span>
+      </label>
+
       <label className={styles.field}>
         <span>Actual Visible Seat IDs From Map</span>
         <textarea
+          {...adminTextAreaProps}
           className={styles.textArea}
           onChange={(event) => setSeatLabelInput(event.target.value)}
           placeholder="SB1-5, SB1-6, SB1-7, SB1-8"
@@ -357,6 +635,7 @@ export function AdminIssueTools() {
       <label className={styles.field}>
         <span>Additional Notes</span>
         <textarea
+          {...adminTextAreaProps}
           className={styles.textArea}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Sponsor admission, comps, or delivery notes"
@@ -372,7 +651,11 @@ export function AdminIssueTools() {
           onClick={submit}
           type="button"
         >
-          {submitting ? "Issuing Tickets..." : "Issue QR Tickets"}
+          {submitting
+            ? "Issuing Tickets..."
+            : autoBlockOpenSeats
+              ? "Issue And Auto-Block Tickets"
+              : "Issue QR Tickets"}
         </button>
       </div>
 
@@ -398,6 +681,7 @@ export function AdminIssueTools() {
             <div className={styles.notice}>
               <strong>Manual text message</strong>
               <textarea
+                {...adminTextAreaProps}
                 className={styles.textArea}
                 readOnly
                 rows={6}

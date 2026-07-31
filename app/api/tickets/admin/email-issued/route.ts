@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import {
+  isAuthorizedTicketAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/ticket-admin-auth";
 import { getAdminIssuedReceiptUrl, eventDetails, formatCurrency, formatEventDate, getTicketTierById } from "@/lib/ticketing";
 import {
-  getAuthorizedAdminSecret,
-  getTicketAdminSecret,
   getTicketOrderById,
   isTicketAdminConfigured,
   isTicketingDatabaseConfigured,
@@ -30,10 +32,6 @@ function escapeHtml(value: string) {
     .replace(/'/g, "&#039;");
 }
 
-function unauthorizedResponse() {
-  return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
-}
-
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
@@ -54,8 +52,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ message: "RESEND_API_KEY is not configured yet." }, { status: 500 });
   }
 
-  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
-    return unauthorizedResponse();
+  if (!(await isAuthorizedTicketAdminRequest(request))) {
+    return unauthorizedAdminResponse();
   }
 
   const payload = (await request.json()) as EmailIssuedPayload;

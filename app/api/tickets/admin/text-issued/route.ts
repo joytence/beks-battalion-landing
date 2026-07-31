@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import {
+  isAuthorizedTicketAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/ticket-admin-auth";
 import { sendAdminIssuedTicketSms, normalizePhoneNumber } from "@/lib/ticket-sms";
 import {
-  getAuthorizedAdminSecret,
-  getTicketAdminSecret,
   getTicketOrderById,
   isTicketAdminConfigured,
   isTicketingDatabaseConfigured,
@@ -17,10 +19,6 @@ type TextIssuedPayload = {
 
 function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
-}
-
-function unauthorizedResponse() {
-  return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
 }
 
 export async function POST(request: Request) {
@@ -40,8 +38,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Twilio SMS is not configured yet." }, { status: 500 });
     }
 
-    if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
-      return unauthorizedResponse();
+    if (!(await isAuthorizedTicketAdminRequest(request))) {
+      return unauthorizedAdminResponse();
     }
 
     const payload = (await request.json()) as TextIssuedPayload;

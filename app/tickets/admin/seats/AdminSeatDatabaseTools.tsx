@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { adminInputProps, adminSelectProps } from "../adminFormProps";
 import { buildAdminRequestHeaders } from "../adminRequestHeaders";
 import styles from "../../ticketing.module.css";
 
@@ -169,7 +170,6 @@ function getSearchHaystack(seat: SeatRecord) {
 }
 
 export function AdminSeatDatabaseTools() {
-  const [adminSecret, setAdminSecret] = useState("");
   const [actionStatus, setActionStatus] = useState("");
   const [data, setData] = useState<SeatDatabaseResponse | null>(null);
   const [error, setError] = useState("");
@@ -193,11 +193,6 @@ export function AdminSeatDatabaseTools() {
   }, [data?.seats, search, statusFilter]);
 
   async function loadSeatDatabase() {
-    if (!adminSecret.trim()) {
-      setError("Enter the admin secret first.");
-      return;
-    }
-
     setLoading(true);
     setActionStatus("");
     setError("");
@@ -206,7 +201,7 @@ export function AdminSeatDatabaseTools() {
     try {
       const response = await fetch("/api/tickets/admin/seats", {
         cache: "no-store",
-        headers: buildAdminRequestHeaders(adminSecret),
+        headers: buildAdminRequestHeaders(),
         method: "POST",
       });
       const payload = (await response.json()) as SeatDatabaseResponse;
@@ -242,17 +237,12 @@ export function AdminSeatDatabaseTools() {
   }
 
   async function downloadTicketSpreadsheet() {
-    if (!adminSecret.trim()) {
-      setError("Enter the admin secret first.");
-      return;
-    }
-
     setExportingTickets(true);
     setError("");
 
     try {
       const response = await fetch("/api/tickets/admin/export", {
-        headers: buildAdminRequestHeaders(adminSecret),
+        headers: buildAdminRequestHeaders(),
       });
 
       if (!response.ok) {
@@ -316,11 +306,6 @@ export function AdminSeatDatabaseTools() {
   }
 
   async function runPaidTicketAction(seat: SeatRecord, channel: "email" | "text") {
-    if (!adminSecret.trim()) {
-      setError("Enter the admin secret first.");
-      return;
-    }
-
     if (seat.status !== "paid" || !seat.checkoutSessionId) {
       setError("Only paid ticket rows can be resent from this table.");
       return;
@@ -345,7 +330,7 @@ export function AdminSeatDatabaseTools() {
     try {
       const response = await fetch("/api/tickets/admin/resend-paid", {
         method: "POST",
-        headers: buildAdminRequestHeaders(adminSecret, {
+        headers: buildAdminRequestHeaders({
           "content-type": "application/json",
         }),
         body: JSON.stringify({
@@ -378,26 +363,15 @@ export function AdminSeatDatabaseTools() {
     <div className={styles.adminPanelStack}>
       <div className={styles.notice}>
         This page shows every generated venue seat and overlays database activity from checkouts,
-        admin blocks, released seats, expired holds, and paid tickets. Customer/order details only
-        appear after the correct admin secret is supplied.
+        admin blocks, released seats, expired holds, and paid tickets. Customer and order details
+        only appear after a valid admin sign-in.
       </div>
 
       <div className={styles.adminFormGrid}>
         <label className={styles.field}>
-          <span>Admin Secret</span>
-          <input
-            autoComplete="off"
-            className={styles.textInput}
-            onChange={(event) => setAdminSecret(event.target.value)}
-            placeholder="Enter TICKET_ADMIN_SECRET"
-            type="password"
-            value={adminSecret}
-          />
-        </label>
-
-        <label className={styles.field}>
           <span>Search Seats / Orders</span>
           <input
+            {...adminInputProps}
             className={styles.textInput}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="SB4-10, blocked, name, email, order ID"
@@ -411,6 +385,7 @@ export function AdminSeatDatabaseTools() {
         <label className={styles.field}>
           <span>Status Filter</span>
           <select
+            {...adminSelectProps}
             className={styles.select}
             onChange={(event) => setStatusFilter(event.target.value as AdminSeatStatus)}
             value={statusFilter}
@@ -426,7 +401,7 @@ export function AdminSeatDatabaseTools() {
         <div className={styles.adminActionRow}>
           <button
             className={styles.primaryButton}
-            disabled={loading || !adminSecret.trim()}
+            disabled={loading}
             onClick={loadSeatDatabase}
             type="button"
           >
@@ -442,7 +417,7 @@ export function AdminSeatDatabaseTools() {
           </button>
           <button
             className={styles.secondaryButton}
-            disabled={exportingTickets || !adminSecret.trim()}
+            disabled={exportingTickets}
             onClick={downloadTicketSpreadsheet}
             type="button"
           >

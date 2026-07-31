@@ -1,6 +1,10 @@
 import type { CSSProperties } from "react";
 
+import { HeroCarousel } from "./HeroCarousel";
+import { HeroCountdown } from "./HeroCountdown";
 import { InquiryAction } from "./InquiryAction";
+import { TopbarActions } from "./TopbarActions";
+import { eventDetails } from "@/lib/ticketing";
 
 const marqueeItems = [
   "Beks Battalion",
@@ -12,16 +16,9 @@ const marqueeItems = [
 
 const topbarCtas = [
   { href: "#lineup", label: "Special Performers", tone: "ghost" },
-  { href: "#tickets", label: "Ticket Info", tone: "hot" },
+  { href: "#tickets", label: "Secure Your Spot", tone: "hot" },
   { href: "#sponsors", label: "Sponsor Info", tone: "ghost" },
-];
-
-const schedule = [
-  { time: "6:00 PM", desc: "Doors open and guest arrival" },
-  { time: "6:45 PM", desc: "Pre-show energy and seating" },
-  { time: "7:00 PM", desc: "Beks Battalion live performance" },
-  { time: "9:00 PM", desc: "Show close and send-off" },
-];
+] as const;
 
 const lineup = [
   {
@@ -66,6 +63,43 @@ const lineup = [
   },
 ] as const;
 
+const heroFaces = [
+  {
+    name: "MC Muah",
+    role: "Beks Battalion",
+    tone: "gold",
+    image: "/assets/hero-preview/hero-1.jpg",
+    position: "center center",
+    logo: "/assets/beks-battalion-logo-transparent.png",
+    logoAlt: "Beks Battalion logo",
+  },
+  {
+    name: "Lassy Marquez",
+    role: "Beks Battalion",
+    tone: "gold",
+    image: "/assets/hero-preview/hero-2.jpg",
+    position: "center center",
+    logo: "/assets/beks-battalion-logo-transparent.png",
+    logoAlt: "Beks Battalion logo",
+  },
+  {
+    name: "Chad Kinis",
+    role: "Beks Battalion",
+    tone: "pink",
+    image: "/assets/hero-preview/hero-3.jpg",
+    position: "center center",
+    logo: "/assets/beks-battalion-logo-transparent.png",
+    logoAlt: "Beks Battalion logo",
+  },
+  {
+    name: "Clyde Martin Garcia",
+    role: "Featured Artist",
+    tone: "orange",
+    image: "/assets/hero-preview/hero-4.jpg",
+    position: "center center",
+  },
+] as const;
+
 function TicketStars({ count }: { count: number }) {
   return (
     <div className="ticket-card__stars" aria-label={`${count} star tier`}>
@@ -92,6 +126,8 @@ const ticketTiers = [
     price: "150$",
     tone: "gold",
     featured: false,
+    callout: "Selling Fast",
+    calloutIcon: "fire",
     perks: ["Front row seating", "Meet and greet access", "Photo opportunity"],
   },
   {
@@ -101,6 +137,7 @@ const ticketTiers = [
     price: "125$",
     tone: "orange",
     featured: true,
+    callout: "Get Them While They Last",
     perks: [
       "Reserved Mid-House Seating",
       "Great Balance of View & Value",
@@ -113,9 +150,17 @@ const ticketTiers = [
     price: "100$",
     tone: "green",
     featured: false,
+    callout: "Still Available",
     perks: ["Affordable Reserved Seating", "Best Valued Entry"],
   },
 ];
+
+const ticketComparisonRows = [
+  { feature: "Best Seats", svip: true, vip: true, ga: false },
+  { feature: "Meet & Greet", svip: true, vip: false, ga: false },
+  { feature: "Photo Opportunity", svip: true, vip: false, ga: false },
+  { feature: "Reserved Seating", svip: true, vip: true, ga: true },
+] as const;
 
 const sponsors = [
   {
@@ -237,13 +282,7 @@ export default function Page() {
             </div>
           </a>
 
-          <nav className="topbar__actions" aria-label="Primary actions">
-            {topbarCtas.map((item) => (
-              <a key={item.href} className={`cta cta--${item.tone}`} href={item.href}>
-                {item.label}
-              </a>
-            ))}
-          </nav>
+          <TopbarActions items={topbarCtas} />
         </div>
 
         <div className="marquee" aria-label="Event marquee">
@@ -273,30 +312,30 @@ export default function Page() {
           <div className="hero__eventline">
             <div className="hero__eventline-script">Live!</div>
             <div className="hero__eventline-title">IN SAN DIEGO</div>
-            <div className="hero__eventline-date">SEP 13, 2026</div>
+            <div className="hero__eventline-date">SEP 13, 2026 | 5PM to 9PM</div>
             <div className="hero__eventline-venue">@ Otay Ranch High School, Chula Vista.</div>
+            <HeroCountdown targetIso={eventDetails.dateIso} title="Until The Show" />
           </div>
 
-          <div className="hero__copy">
-            <h1 className="hero__title">
-              <span className="hero__title-primary">Beks Battalion</span>
-              <span className="hero__title-credits">
-                with Lassy Marquez, Chad Kinis, and MC Muah.
-              </span>
-              <span className="hero__title-secondary">The Laff Control Project</span>
-            </h1>
-          </div>
-          <div className="hero__logo-stack" aria-label="Joy Stage and StageNova logos">
+          <div className="hero__visual">
             <img
               className="hero__logo-overlay"
               src="/assets/joy-stage-logo-gold.png"
               alt="Joy Stage Productions LLC"
             />
+            <HeroCarousel items={heroFaces} />
             <img
               className="hero__logo-secondary"
               src="/assets/stage-nova-production-transparent.png"
               alt="StageNova Entertainment Production"
             />
+          </div>
+
+          <div className="hero__copy">
+            <h1 className="hero__title">
+              <span className="hero__title-primary">Beks Battalion</span>
+              <span className="hero__title-secondary">The Laff Control Project</span>
+            </h1>
           </div>
         </div>
       </section>
@@ -323,7 +362,6 @@ export default function Page() {
                   "--lineup-position": artist.position,
                 } as CSSProperties}
               >
-                <div className="lineup-card__badge">{artist.badge}</div>
                 <div className="lineup-card__role">{artist.role}</div>
                 <h3>{artist.name}</h3>
               </article>
@@ -339,54 +377,74 @@ export default function Page() {
             <div className="ticket-poster ticket-poster--left">
               <h2 className="ticket-poster__heading">Choose Ticket Options</h2>
 
-              <div className="ticket-poster__tiers">
-                {ticketTiers.map((tier) => (
-                  <article
-                    key={tier.name}
-                    className={`ticket-card ticket-card--${tier.tone} ${
-                      tier.featured ? "ticket-card--featured" : ""
-                    }`}
-                    tabIndex={0}
-                  >
-                    {tier.stars > 0 ? <TicketStars count={tier.stars} /> : null}
-                    <h3
-                      className={`ticket-card__name ${
-                        tier.name === "General Admission" ? "ticket-card__name--long" : ""
-                      }`}
-                    >
-                      {tier.name}
-                    </h3>
-                    <div className="ticket-card__price">{tier.price}</div>
-                    <ul className="ticket-card__perks">
-                      {tier.perks.map((perk) => (
-                        <li key={perk}>{perk}</li>
-                      ))}
-                    </ul>
-                    <a
-                      className="cta cta--ghost ticket-card__buy"
-                      href="/tickets"
-                    >
-                      Buy Now
-                    </a>
-                  </article>
-                ))}
-              </div>
-            </div>
-
-            <div className="ticket-schedule card">
-              <div className="ticket-schedule__header">
-                <SectionTag>Event Schedule</SectionTag>
-              </div>
-
-              <div className="ticket-schedule__rows">
-                {schedule.map((item) => (
-                  <div key={item.time} className="ticket-schedule__row">
-                    <div className="ticket-schedule__time">{item.time}</div>
-                    <div className="ticket-schedule__desc">{item.desc}</div>
+              <div className="ticket-poster__compare-layout">
+                <aside className="ticket-compare" aria-label="Ticket comparison chart">
+                  <div className="ticket-compare__eyebrow">Compare At A Glance</div>
+                  <div className="ticket-compare__table-wrap">
+                    <table className="ticket-compare__table">
+                      <thead>
+                        <tr>
+                          <th>Feature</th>
+                          <th>SVIP</th>
+                          <th>VIP</th>
+                          <th>GA</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ticketComparisonRows.map((row) => (
+                          <tr key={row.feature}>
+                            <th scope="row">{row.feature}</th>
+                            <td>{row.svip ? "✓" : ""}</td>
+                            <td>{row.vip ? "✓" : ""}</td>
+                            <td>{row.ga ? "✓" : ""}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
+                </aside>
+
+                <div className="ticket-poster__tiers">
+                  {ticketTiers.map((tier) => (
+                    <article
+                      key={tier.name}
+                      className={`ticket-card ticket-card--${tier.tone} ${
+                        tier.featured ? "ticket-card--featured" : ""
+                      }`}
+                      tabIndex={0}
+                    >
+                      {"callout" in tier && tier.callout ? (
+                        <div className="ticket-card__callout" aria-label={tier.callout}>
+                          {tier.calloutIcon === "fire" ? <span aria-hidden="true">🔥</span> : null}
+                          {tier.callout}
+                        </div>
+                      ) : null}
+                      {tier.stars > 0 ? <TicketStars count={tier.stars} /> : null}
+                      <h3
+                        className={`ticket-card__name ${
+                          tier.name === "General Admission" ? "ticket-card__name--long" : ""
+                        }`}
+                      >
+                        {tier.name}
+                      </h3>
+                      <div className="ticket-card__price">{tier.price}</div>
+                      <ul className="ticket-card__perks">
+                        {tier.perks.map((perk) => (
+                          <li key={perk}>{perk}</li>
+                        ))}
+                      </ul>
+                      <a
+                        className="cta cta--ghost ticket-card__buy"
+                        href="/tickets"
+                      >
+                        Buy Now
+                      </a>
+                    </article>
+                  ))}
+                </div>
               </div>
             </div>
+
           </div>
         </div>
       </section>
@@ -484,6 +542,11 @@ export default function Page() {
                     alt="Mrs. B's Realty"
                   />
                 </a>
+                <img
+                  className="sponsor-cta__logo sponsor-cta__logo--wide"
+                  src="/assets/doctora-rosana-alfonso.png"
+                  alt="Doctora Rosana Alfonso DDS"
+                />
                 <img
                   className="sponsor-cta__logo sponsor-cta__logo--luna"
                   src="/assets/luna-band-ph.png"

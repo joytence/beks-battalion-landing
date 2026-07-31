@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import {
+  isAuthorizedTicketAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/ticket-admin-auth";
 import { getAdminIssuedReceiptPath } from "@/lib/ticketing";
 import {
-  getAuthorizedAdminSecret,
-  getTicketAdminSecret,
   isTicketAdminConfigured,
   issueBlockedSeatsForAdmin,
   TicketingStoreError,
@@ -10,6 +12,7 @@ import {
 
 type IssuePayload = {
   actorLabel?: unknown;
+  autoBlockOpenSeats?: unknown;
   notes?: unknown;
   purchaserEmail?: unknown;
   purchaserName?: unknown;
@@ -35,8 +38,8 @@ function getSeatLabels(value: unknown, singleValue: unknown) {
   return seatLabels;
 }
 
-function unauthorizedResponse() {
-  return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
+function toBoolean(value: unknown) {
+  return value === true;
 }
 
 export async function POST(request: Request) {
@@ -47,14 +50,15 @@ export async function POST(request: Request) {
     );
   }
 
-  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
-    return unauthorizedResponse();
+  if (!(await isAuthorizedTicketAdminRequest(request))) {
+    return unauthorizedAdminResponse();
   }
 
   try {
     const payload = (await request.json()) as IssuePayload;
     const result = await issueBlockedSeatsForAdmin({
       actorLabel: clean(payload.actorLabel) || "Admin Issue",
+      autoBlockOpenSeats: toBoolean(payload.autoBlockOpenSeats),
       notes: clean(payload.notes),
       purchaserEmail: clean(payload.purchaserEmail),
       purchaserName: clean(payload.purchaserName),

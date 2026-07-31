@@ -9,14 +9,25 @@ function normalizeAdminSecretValue(value: string) {
 }
 
 export function buildAdminRequestHeaders(
-  adminSecret: string,
+  adminSecretOrHeaders: string | Record<string, string> = {},
   headers: Record<string, string> = {},
 ) {
-  const normalizedSecret = normalizeAdminSecretValue(adminSecret);
+  if (typeof adminSecretOrHeaders === "string") {
+    const normalizedSecret = normalizeAdminSecretValue(adminSecretOrHeaders);
+
+    return {
+      ...(normalizedSecret
+        ? {
+            authorization: `Bearer ${normalizedSecret}`,
+            "x-ticket-admin-secret": normalizedSecret,
+          }
+        : {}),
+      ...headers,
+    };
+  }
 
   return {
-    authorization: `Bearer ${normalizedSecret}`,
-    "x-ticket-admin-secret": normalizedSecret,
+    ...adminSecretOrHeaders,
     ...headers,
   };
 }

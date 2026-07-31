@@ -76,9 +76,6 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/">
             Back to Event Page
           </a>
-          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin">
-            Open Seat Admin
-          </a>
         </div>
 
         <div className={styles.eyebrow}>

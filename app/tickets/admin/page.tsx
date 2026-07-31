@@ -27,13 +27,17 @@ export default function TicketAdminPage() {
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/seats">
             Seat Database
           </a>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/api/tickets/admin/logout">
+            Sign Out
+          </a>
         </div>
 
         <div className={styles.eyebrow}>Seat Control</div>
         <h1 className={styles.title}>Block Or Unblock Seats Before Live Payments</h1>
         <p className={styles.lead}>
           Use this page to reserve sponsor, guest, or internal seats before turning on reserved-seat
-          checkout. Nothing happens here unless the correct admin secret is supplied.
+          checkout. Access is now protected by a signed admin session instead of a shared password
+          pasted into the browser on every action.
         </p>
       </section>
 

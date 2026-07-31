@@ -10,6 +10,7 @@ export type MetaCapiEventInput = {
   eventId?: string;
   eventName: string;
   eventSourceUrl: string;
+  eventTime?: number;
   fbc?: string;
   fbp?: string;
   phone?: string;
@@ -104,7 +105,7 @@ export async function sendMetaCapiEvent(
         event_id: input.eventId || crypto.randomUUID(),
         event_name: input.eventName,
         event_source_url: input.eventSourceUrl,
-        event_time: Math.floor(Date.now() / 1000),
+        event_time: input.eventTime || Math.floor(Date.now() / 1000),
         user_data: {
           ...(input.clientIpAddress ? { client_ip_address: input.clientIpAddress } : {}),
           ...(input.clientUserAgent ? { client_user_agent: input.clientUserAgent } : {}),

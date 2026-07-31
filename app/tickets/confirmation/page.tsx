@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import QRCode from "qrcode";
+import { ConfirmationTrackingDataLayer } from "./ConfirmationTrackingDataLayer";
 import { PrintTicketButton } from "../PrintTicketButton";
 import styles from "../ticketing.module.css";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
@@ -68,6 +70,13 @@ export default async function TicketConfirmationPage({
   const parsedAccess = accessToken ? parseStripeReceiptAccessToken(accessToken) : null;
   const sessionId =
     parsedAccess?.sessionId || (typeof params.session_id === "string" ? params.session_id : "");
+  const adminIssuedOrderId = sessionId.startsWith("admin_issued_")
+    ? sessionId.replace(/^admin_issued_/, "")
+    : "";
+
+  if (adminIssuedOrderId) {
+    redirect(`/tickets/admin/issued?order_id=${encodeURIComponent(adminIssuedOrderId)}`);
+  }
 
   if (!isStripeConfigured()) {
     return (
@@ -123,6 +132,7 @@ export default async function TicketConfirmationPage({
   const purchaserEmail = session.customer_details?.email?.trim() || session.customer_email?.trim() || "";
   const currency = session.currency || "usd";
   const amountTotal = session.amount_total || tier.priceCents * quantity;
+  const amountTotalValue = Number((amountTotal / 100).toFixed(2));
   const siteUrl = getSiteUrl();
   const eventDate = formatEventDate(eventDetails.dateIso);
   const assignmentFieldLabel = getTicketAssignmentFieldLabel(checkoutFlow);
@@ -240,6 +250,13 @@ export default async function TicketConfirmationPage({
 
   return (
     <main className={styles.receiptPage}>
+      <ConfirmationTrackingDataLayer
+        currency={currency.toUpperCase()}
+        ticketQuantity={quantity}
+        ticketType={tier.name}
+        transactionId={session.id}
+        value={amountTotalValue}
+      />
       <section className={styles.receiptStatusCard}>
         <div className={styles.statusEyebrow}>Paid successfully</div>
         <h1 className={styles.statusTitle}>Print-Ready Electronic Tickets</h1>

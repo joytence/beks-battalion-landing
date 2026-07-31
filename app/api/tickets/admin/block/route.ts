@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import {
+  isAuthorizedTicketAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/ticket-admin-auth";
+import {
   blockSeatsForAdmin,
-  getAuthorizedAdminSecret,
-  getTicketAdminSecret,
   isTicketAdminConfigured,
   TicketingStoreError,
   unblockSeatsForAdmin,
@@ -42,10 +44,6 @@ async function parsePayload(request: Request) {
   };
 }
 
-function unauthorizedResponse() {
-  return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
-}
-
 export async function POST(request: Request) {
   if (!isTicketAdminConfigured()) {
     return NextResponse.json(
@@ -54,8 +52,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
-    return unauthorizedResponse();
+  if (!(await isAuthorizedTicketAdminRequest(request))) {
+    return unauthorizedAdminResponse();
   }
 
   try {
@@ -82,8 +80,8 @@ export async function DELETE(request: Request) {
     );
   }
 
-  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
-    return unauthorizedResponse();
+  if (!(await isAuthorizedTicketAdminRequest(request))) {
+    return unauthorizedAdminResponse();
   }
 
   try {

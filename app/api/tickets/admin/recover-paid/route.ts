@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import {
+  isAuthorizedTicketAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/ticket-admin-auth";
+import { getAdminIssuedReceiptPath, getStripeReceiptPath } from "@/lib/ticketing";
+import {
   findPaidTicketOrders,
-  getAuthorizedAdminSecret,
-  getTicketAdminSecret,
   isTicketAdminConfigured,
   isTicketingDatabaseConfigured,
   listRecentPaidTicketOrders,
@@ -19,10 +22,6 @@ function clean(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function unauthorizedResponse() {
-  return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
-}
-
 export async function POST(request: Request) {
   try {
     if (!isTicketAdminConfigured()) {
@@ -36,8 +35,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "DATABASE_URL is required first." }, { status: 500 });
     }
 
-    if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
-      return unauthorizedResponse();
+    if (!(await isAuthorizedTicketAdminRequest(request))) {
+      return unauthorizedAdminResponse();
     }
 
     const payload = (await request.json().catch(() => ({}))) as RecoveryPayload;
@@ -71,7 +70,12 @@ export async function POST(request: Request) {
             ? `Loaded ${orders.length} recent paid ticket order${orders.length === 1 ? "" : "s"}.`
             : `Found ${orders.length} paid ticket order${orders.length === 1 ? "" : "s"}.`
       ,
-      orders,
+      orders: orders.map((order) => ({
+        ...order,
+        receiptUrl: order.checkoutSessionId.startsWith("admin_issued_")
+          ? getAdminIssuedReceiptPath(order.id)
+          : getStripeReceiptPath(order.checkoutSessionId),
+      })),
     });
   } catch (error) {
     console.error("Paid ticket recovery route error:", error);

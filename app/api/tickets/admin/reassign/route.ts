@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import {
-  getAuthorizedAdminSecret,
-  getTicketAdminSecret,
+  isAuthorizedTicketAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/ticket-admin-auth";
+import {
   isTicketAdminConfigured,
   reassignReservedSeatTicket,
   TicketingStoreError,
@@ -27,8 +29,8 @@ export async function POST(request: Request) {
     );
   }
 
-  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
-    return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
+  if (!(await isAuthorizedTicketAdminRequest(request))) {
+    return unauthorizedAdminResponse();
   }
 
   const payload = (await request.json()) as ReassignPayload;

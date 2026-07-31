@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { adminInputProps } from "../adminFormProps";
 import { buildAdminRequestHeaders } from "../adminRequestHeaders";
 import styles from "../../ticketing.module.css";
 
@@ -23,6 +24,7 @@ type RecoveryOrder = {
   purchaserEmail: string;
   purchaserName: string;
   purchaserPhone: string;
+  receiptUrl: string;
   seatAssignmentMode: string;
   ticketQuantity: number;
   ticketTierId: string;
@@ -97,12 +99,11 @@ function buildContactDrafts(orders: RecoveryOrder[]) {
   }, {});
 }
 
-function getPaidTicketHref(checkoutSessionId: string) {
-  return `/tickets/confirmation?session_id=${encodeURIComponent(checkoutSessionId)}`;
+function isAdminIssuedOrder(order: RecoveryOrder) {
+  return order.checkoutSessionId.startsWith("admin_issued_");
 }
 
 export function AdminPaidRecoveryTools() {
-  const [adminSecret, setAdminSecret] = useState("");
   const [error, setError] = useState("");
   const [lookupQuery, setLookupQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -113,11 +114,6 @@ export function AdminPaidRecoveryTools() {
   const [actionMessages, setActionMessages] = useState<Record<string, string>>({});
 
   async function loadOrders(options: { query?: string; recent?: boolean }) {
-    if (!adminSecret.trim()) {
-      setError("Enter the admin secret first.");
-      return;
-    }
-
     setLoading(true);
     setError("");
     setStatus("");
@@ -130,7 +126,7 @@ export function AdminPaidRecoveryTools() {
           query: options.query || "",
           recent: options.recent === true,
         }),
-        headers: buildAdminRequestHeaders(adminSecret, {
+        headers: buildAdminRequestHeaders({
           "content-type": "application/json",
         }),
         method: "POST",
@@ -197,11 +193,6 @@ export function AdminPaidRecoveryTools() {
   }
 
   async function resend(order: RecoveryOrder, channel: "email" | "text") {
-    if (!adminSecret.trim()) {
-      setError("Enter the admin secret first.");
-      return;
-    }
-
     const checkoutSessionId = order.checkoutSessionId;
     const draft = contactDrafts[checkoutSessionId] || {
       email: order.purchaserEmail || "",
@@ -216,14 +207,32 @@ export function AdminPaidRecoveryTools() {
     }));
 
     try {
-      const response = await fetch("/api/tickets/admin/resend-paid", {
-        body: JSON.stringify({
-          channel,
-          checkoutSessionId,
-          recipientEmail: draft.email.trim(),
-          recipientPhone: draft.phone.trim(),
-        }),
-        headers: buildAdminRequestHeaders(adminSecret, {
+      const adminIssued = isAdminIssuedOrder(order);
+      const endpoint = adminIssued
+        ? channel === "email"
+          ? "/api/tickets/admin/email-issued"
+          : "/api/tickets/admin/text-issued"
+        : "/api/tickets/admin/resend-paid";
+      const body = adminIssued
+        ? channel === "email"
+          ? {
+              orderId: order.id,
+              recipientEmail: draft.email.trim(),
+            }
+          : {
+              orderId: order.id,
+              recipientPhone: draft.phone.trim(),
+            }
+        : {
+            channel,
+            checkoutSessionId,
+            recipientEmail: draft.email.trim(),
+            recipientPhone: draft.phone.trim(),
+          };
+
+      const response = await fetch(endpoint, {
+        body: JSON.stringify(body),
+        headers: buildAdminRequestHeaders({
           "content-type": "application/json",
         }),
         method: "POST",
@@ -259,20 +268,9 @@ export function AdminPaidRecoveryTools() {
 
       <div className={styles.adminFormGrid}>
         <label className={styles.field}>
-          <span>Admin Secret</span>
-          <input
-            autoComplete="off"
-            className={styles.textInput}
-            onChange={(event) => setAdminSecret(event.target.value)}
-            placeholder="Enter TICKET_ADMIN_SECRET"
-            type="password"
-            value={adminSecret}
-          />
-        </label>
-
-        <label className={styles.field}>
           <span>Paid Ticket Search</span>
           <input
+            {...adminInputProps}
             className={styles.textInput}
             onChange={(event) => setLookupQuery(event.target.value)}
             placeholder="Seat, order ID, checkout session, email, phone, or name"
@@ -361,6 +359,7 @@ export function AdminPaidRecoveryTools() {
               <label className={styles.field}>
                 <span>Recovery Email</span>
                 <input
+                  {...adminInputProps}
                   className={styles.textInput}
                   onChange={(event) =>
                     updateDraft(order.checkoutSessionId, "email", event.target.value)
@@ -374,6 +373,7 @@ export function AdminPaidRecoveryTools() {
               <label className={styles.field}>
                 <span>Recovery Phone</span>
                 <input
+                  {...adminInputProps}
                   className={styles.textInput}
                   onChange={(event) =>
                     updateDraft(order.checkoutSessionId, "phone", event.target.value)
@@ -386,7 +386,7 @@ export function AdminPaidRecoveryTools() {
             </div>
 
             <div className={styles.adminActionRow}>
-              <a className={styles.secondaryButton} href={getPaidTicketHref(order.checkoutSessionId)}>
+              <a className={styles.secondaryButton} href={order.receiptUrl}>
                 Open Printable Ticket
               </a>
               <button

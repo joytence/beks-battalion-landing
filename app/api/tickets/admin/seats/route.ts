@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import {
+  isAuthorizedTicketAdminRequest,
+  unauthorizedAdminResponse,
+} from "@/lib/ticket-admin-auth";
+import {
   eventDetails,
   getTicketSeatChart,
   getTicketTierById,
@@ -7,8 +11,6 @@ import {
 } from "@/lib/ticketing";
 import {
   getAdminSeatDatabaseRecords,
-  getAuthorizedAdminSecret,
-  getTicketAdminSecret,
   isTicketAdminConfigured,
   isTicketingDatabaseConfigured,
   TicketingStoreError,
@@ -134,8 +136,8 @@ async function handleSeatDatabaseRequest(request: Request) {
     );
   }
 
-  if (getAuthorizedAdminSecret(request) !== getTicketAdminSecret()) {
-    return NextResponse.json({ message: "Admin authorization failed." }, { status: 401 });
+  if (!(await isAuthorizedTicketAdminRequest(request))) {
+    return unauthorizedAdminResponse();
   }
 
   if (!isTicketingDatabaseConfigured()) {

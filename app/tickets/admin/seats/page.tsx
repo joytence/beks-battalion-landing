@@ -27,6 +27,9 @@ export default function TicketSeatDatabasePage() {
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets">
             Public Ticket Page
           </a>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/api/tickets/admin/logout">
+            Sign Out
+          </a>
         </div>
 
         <div className={styles.eyebrow}>Seat Database</div>

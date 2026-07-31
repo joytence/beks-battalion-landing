@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { adminInputProps, adminTextAreaProps } from "./adminFormProps";
 import { buildAdminRequestHeaders } from "./adminRequestHeaders";
 import styles from "../ticketing.module.css";
 
@@ -22,7 +23,6 @@ function normalizeSeatLabels(value: string) {
 }
 
 export function AdminReleaseTools() {
-  const [adminSecret, setAdminSecret] = useState("");
   const [actorLabel, setActorLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [seatLabelInput, setSeatLabelInput] = useState("");
@@ -31,11 +31,11 @@ export function AdminReleaseTools() {
   const [submitting, setSubmitting] = useState(false);
 
   const seatLabels = useMemo(() => normalizeSeatLabels(seatLabelInput), [seatLabelInput]);
-  const canSubmit = adminSecret.trim().length > 0 && seatLabels.length > 0;
+  const canSubmit = seatLabels.length > 0;
 
   async function submit() {
     if (!canSubmit) {
-      setError("Enter the admin secret and at least one paid seat.");
+      setError("Enter at least one paid seat.");
       return;
     }
 
@@ -50,7 +50,7 @@ export function AdminReleaseTools() {
           notes: notes.trim(),
           seatLabels,
         }),
-        headers: buildAdminRequestHeaders(adminSecret, {
+        headers: buildAdminRequestHeaders({
           "content-type": "application/json",
         }),
         method: "POST",
@@ -79,20 +79,9 @@ export function AdminReleaseTools() {
 
       <div className={styles.adminFormGrid}>
         <label className={styles.field}>
-          <span>Admin Secret</span>
-          <input
-            autoComplete="off"
-            className={styles.textInput}
-            onChange={(event) => setAdminSecret(event.target.value)}
-            placeholder="Enter TICKET_ADMIN_SECRET"
-            type="password"
-            value={adminSecret}
-          />
-        </label>
-
-        <label className={styles.field}>
           <span>Release Reason</span>
           <input
+            {...adminInputProps}
             className={styles.textInput}
             onChange={(event) => setActorLabel(event.target.value)}
             placeholder="Refunded payment, guest transfer, admin correction"
@@ -105,6 +94,7 @@ export function AdminReleaseTools() {
       <label className={styles.field}>
         <span>Actual Visible Seat IDs From Map</span>
         <textarea
+          {...adminTextAreaProps}
           className={styles.textArea}
           onChange={(event) => setSeatLabelInput(event.target.value)}
           placeholder="SA10-2, SB4-6"
@@ -116,6 +106,7 @@ export function AdminReleaseTools() {
       <label className={styles.field}>
         <span>Additional Notes</span>
         <textarea
+          {...adminTextAreaProps}
           className={styles.textArea}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Document the refund or reason this paid seat is being reopened"

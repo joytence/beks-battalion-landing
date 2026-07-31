@@ -1121,6 +1121,28 @@
   gap: 14px;
 }
 
+.checkboxField {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 207, 90, 0.18);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(245, 241, 232, 0.86);
+}
+
+.checkboxField input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: var(--gold-soft);
+}
+
+.checkboxField span {
+  line-height: 1.5;
+}
+
 .adminResult {
   margin: 0;
   white-space: pre-wrap;
@@ -1224,6 +1246,75 @@
   padding: 0 12px;
   font-size: 0.78rem;
   letter-spacing: 0.1em;
+}
+
+.openSeatTierStack {
+  display: grid;
+  gap: 14px;
+}
+
+.openSeatTierCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 207, 90, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.openSeatTierHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.openSeatTierHeader strong {
+  color: rgba(245, 241, 232, 0.96);
+  font-size: 1.05rem;
+}
+
+.openSeatTierHeader span {
+  color: rgba(245, 241, 232, 0.62);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.openSeatChipGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.openSeatChip {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 207, 90, 0.18);
+  background: rgba(7, 7, 7, 0.5);
+  color: rgba(245, 241, 232, 0.9);
+  text-align: left;
+  cursor: pointer;
+}
+
+.openSeatChip strong {
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+.openSeatChip span {
+  color: rgba(245, 241, 232, 0.58);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.openSeatChipSelected {
+  border-color: rgba(255, 207, 90, 0.42);
+  background: rgba(255, 207, 90, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 207, 90, 0.2);
 }
 
 .seatStatusPill {
@@ -1562,6 +1653,43 @@
 }
 
 @media (min-width: 901px) {
+  .sectionCard {
+    max-width: 1320px;
+  }
+
+  .sectionHeader {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .sectionTitle {
+    max-width: none;
+  }
+
+  .checkoutShell {
+    width: 100%;
+    max-width: 1360px;
+    margin-inline: auto;
+    display: flex;
+    justify-content: center;
+  }
+
+  .selectorGrid {
+    width: min(100%, 1280px);
+    grid-template-columns: repeat(3, minmax(320px, 1fr));
+    justify-content: center;
+    align-items: stretch;
+    gap: 40px;
+    margin-inline: auto;
+  }
+
+  .tierCard {
+    width: 100%;
+    max-width: none;
+    min-height: 100%;
+    padding: 28px 30px;
+  }
+
   .seatMapOnlyLayout {
     grid-template-columns: minmax(0, 1fr) 340px;
     align-items: start;

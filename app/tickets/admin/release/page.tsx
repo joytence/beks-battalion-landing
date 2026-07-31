@@ -18,6 +18,9 @@ export default function TicketAdminReleasePage() {
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets">
             Back to Ticket Page
           </a>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/api/tickets/admin/logout">
+            Sign Out
+          </a>
         </div>
 
         <div className={styles.eyebrow}>Admin Tools</div>

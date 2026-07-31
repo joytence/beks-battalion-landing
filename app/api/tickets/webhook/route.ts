@@ -1,5 +1,6 @@
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { sendMetaCapiEvent } from "@/lib/meta-capi";
 import {
   sendReservedSeatReceiptEmail,
   sendReservedSeatSaleNotificationEmail,
@@ -22,6 +23,7 @@ import {
   syncReservedSeatPaymentFailed,
   TicketingStoreError,
 } from "@/lib/ticketing-store";
+import { getTicketTierById } from "@/lib/ticketing";
 
 export async function POST(request: Request) {
   if (!isStripeConfigured() || !isStripeWebhookConfigured()) {
@@ -139,6 +141,47 @@ export async function POST(request: Request) {
         sessionId: session.id,
         ticketTierId: session.metadata?.ticket_tier_id || "",
       });
+
+      const amountTotalValue = Number(((session.amount_total || 0) / 100).toFixed(2));
+      const currency = (session.currency || "usd").toUpperCase();
+      const ticketQuantity = Number(session.metadata?.ticket_quantity || "0");
+      const ticketTierId = session.metadata?.ticket_tier_id || "";
+      const ticketType = getTicketTierById(ticketTierId)?.name || ticketTierId;
+      const metaEvent = await sendMetaCapiEvent({
+        customData: {
+          content_category: "tickets",
+          content_name: event.data.object.metadata?.event_slug || "beks-battalion",
+          currency,
+          num_items: ticketQuantity || undefined,
+          order_id: session.id,
+          transaction_id: session.id,
+          ticket_quantity: ticketQuantity || undefined,
+          ticket_type: ticketType,
+          ticket_tier_id: ticketTierId,
+          value: amountTotalValue,
+        },
+        email: session.customer_details?.email || session.customer_email || undefined,
+        eventId: session.id,
+        eventName: "Purchase",
+        eventSourceUrl: `https://www.joystageproductions.com/tickets/confirmation?session_id=${encodeURIComponent(session.id)}`,
+        eventTime: event.created,
+        phone: session.customer_details?.phone || undefined,
+        testEventCode: process.env.META_TEST_EVENT_CODE?.trim() || undefined,
+      });
+
+      if (!metaEvent.ok) {
+        console.error("Meta CAPI purchase event error:", metaEvent.reason);
+      } else if (metaEvent.skipped) {
+        console.warn("Meta CAPI purchase event skipped:", metaEvent.reason);
+      } else {
+        console.info("Meta CAPI purchase event sent:", {
+          amountTotalValue,
+          currency,
+          sessionId: session.id,
+          ticketQuantity,
+          ticketType,
+        });
+      }
       break;
     }
     case "checkout.session.async_payment_failed": {

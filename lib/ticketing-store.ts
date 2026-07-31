@@ -4,9 +4,11 @@ import postgres, { type Sql, type TransactionSql } from "postgres";
 import {
   eventDetails,
   getTierIdForSeatLabel,
+  getTicketSeatChart,
   getTicketTierById,
   isValidTierSeatLabel,
   parseSeatLabels,
+  ticketTiers,
   type TicketCheckoutFlow,
   type TicketTierId,
   validateRequestedSeatSelection,
@@ -64,11 +66,41 @@ type ReleasePaidSeatsParams = {
 
 type IssueAdminTicketsParams = {
   actorLabel: string;
+  autoBlockOpenSeats?: boolean;
   notes?: string;
   purchaserEmail?: string;
   purchaserName: string;
   purchaserPhone?: string;
   seatLabels: string[];
+};
+
+export type AdminIssueAvailableSeat = {
+  blockLabel: string;
+  label: string;
+  layoutLabel: string;
+  row: string;
+  tierId: TicketTierId;
+  tierName: string;
+};
+
+export type AdminIssueAvailabilitySnapshot = {
+  availableSeats: AdminIssueAvailableSeat[];
+  blockedSeats: AdminIssueAvailableSeat[];
+  generatedAt: string;
+  summary: {
+    availableByTier: {
+      count: number;
+      tierId: TicketTierId;
+      tierName: string;
+    }[];
+    blockedByTier: {
+      count: number;
+      tierId: TicketTierId;
+      tierName: string;
+    }[];
+    totalAvailable: number;
+    totalBlocked: number;
+  };
 };
 
 type TicketOrderRecord = {
@@ -552,6 +584,113 @@ export async function getUnavailableSeatLabels() {
   return withStore(async (sql) => {
     await releaseExpiredSeatHolds(sql);
     return getUnavailableSeatLabelsForUpdate(sql);
+  });
+}
+
+export async function getAdminIssueAvailabilitySnapshot(): Promise<AdminIssueAvailabilitySnapshot> {
+  return withStore(async (sql) => {
+    await releaseExpiredSeatHolds(sql);
+
+    const unavailableSeatLabels = await getUnavailableSeatLabelsForUpdate(sql);
+    const seatChart = getTicketSeatChart({ blockedSeatLabels: unavailableSeatLabels });
+    const tierOrder = new Map(ticketTiers.map((tier, index) => [tier.id, index]));
+    const sortSeats = (left: AdminIssueAvailableSeat, right: AdminIssueAvailableSeat) => {
+      const leftTierOrder = tierOrder.get(left.tierId) ?? 99;
+      const rightTierOrder = tierOrder.get(right.tierId) ?? 99;
+
+      if (leftTierOrder !== rightTierOrder) {
+        return leftTierOrder - rightTierOrder;
+      }
+
+      return left.label.localeCompare(right.label, undefined, {
+        numeric: true,
+        sensitivity: "base",
+      });
+    };
+
+    const availableSeats = seatChart.blocks
+      .flatMap((block) =>
+        block.rows.flatMap((row) =>
+          row.seats
+            .filter((seat) => seat.status === "available")
+            .map((seat) => ({
+              blockLabel: block.blockLabel,
+              label: seat.label,
+              layoutLabel: seat.layoutLabel,
+              row: row.row,
+              tierId: seat.tierId,
+              tierName: getTicketTierById(seat.tierId)?.name || seat.tierId,
+            })),
+        ),
+      )
+      .sort(sortSeats);
+
+    const blockedSeats = await sql<AdminIssueAvailableSeat[]>`
+      with ranked_blocked as (
+        select
+          ticket_seat_holds.seat_label as label,
+          ticket_seat_holds.ticket_tier_id as "tierId",
+          row_number() over (
+            partition by upper(ticket_seat_holds.seat_label)
+            order by ticket_seat_holds.updated_at desc, ticket_seat_holds.created_at desc
+          ) as seat_rank
+        from ticket_seat_holds
+        inner join ticket_orders on ticket_orders.id = ticket_seat_holds.order_id
+        where ticket_seat_holds.event_slug = ${eventDetails.slug}
+          and ticket_orders.order_status = 'pending'
+          and coalesce(ticket_orders.seat_assignment_mode, 'reserved') = 'blocked'
+          and ticket_seat_holds.status in ('blocked', 'converted')
+      )
+      select
+        ranked_blocked.label,
+        ranked_blocked.label as "layoutLabel",
+        split_part(ranked_blocked.label, '-', 1) as row,
+        ranked_blocked."tierId"
+      from ranked_blocked
+      where ranked_blocked.seat_rank = 1
+    `;
+
+    const decoratedBlockedSeats = blockedSeats
+      .map((seat) => ({
+        blockLabel: getTicketSeatChart()
+          .blocks.flatMap((block) =>
+            block.rows.flatMap((row) =>
+              row.seats
+                .filter((candidate) => candidate.label === seat.label || candidate.layoutLabel === seat.label)
+                .map(() => block.blockLabel),
+            ),
+          )[0] || seat.row,
+        label: seat.label,
+        layoutLabel: seat.layoutLabel,
+        row: seat.row,
+        tierId: seat.tierId,
+        tierName: getTicketTierById(seat.tierId)?.name || seat.tierId,
+      }))
+      .sort(sortSeats);
+
+    return {
+      availableSeats,
+      blockedSeats: decoratedBlockedSeats,
+      generatedAt: new Date().toISOString(),
+      summary: {
+        availableByTier: ticketTiers
+          .map((tier) => ({
+            count: availableSeats.filter((seat) => seat.tierId === tier.id).length,
+            tierId: tier.id,
+            tierName: tier.name,
+          }))
+          .filter((entry) => entry.count > 0),
+        blockedByTier: ticketTiers
+          .map((tier) => ({
+            count: decoratedBlockedSeats.filter((seat) => seat.tierId === tier.id).length,
+            tierId: tier.id,
+            tierName: tier.name,
+          }))
+          .filter((entry) => entry.count > 0),
+        totalAvailable: availableSeats.length,
+        totalBlocked: decoratedBlockedSeats.length,
+      },
+    };
   });
 }
 
@@ -2187,6 +2326,7 @@ export async function blockSeatsForAdmin({ actorLabel, notes, seatLabels }: Bloc
 
 export async function issueBlockedSeatsForAdmin({
   actorLabel,
+  autoBlockOpenSeats,
   notes,
   purchaserEmail,
   purchaserName,
@@ -2196,6 +2336,7 @@ export async function issueBlockedSeatsForAdmin({
   return withStore(async (sql) =>
     sql.begin(async (tx) => {
       const normalizedSeatLabels = normalizeSeatLabels(seatLabels);
+      const shouldAutoBlockOpenSeats = Boolean(autoBlockOpenSeats);
       const normalizedPurchaserName = purchaserName.trim();
       const normalizedPurchaserEmail = purchaserEmail?.trim() || "";
       const normalizedPurchaserPhone = purchaserPhone?.trim() || "";
@@ -2240,6 +2381,7 @@ export async function issueBlockedSeatsForAdmin({
       const unavailableSeatLabels = await getUnavailableSeatLabelsForUpdate(tx);
       const selectedSourceHolds: SponsorBlockHoldRow[] = [];
       const existingIssuedHolds: SponsorBlockHoldRow[] = [];
+      const autoBlockedSeatEntries: { seatLabel: string; ticketTierId: TicketTierId }[] = [];
       const missingSeatReasons: string[] = [];
 
       for (const seatLabel of normalizedSeatLabels) {
@@ -2267,6 +2409,20 @@ export async function issueBlockedSeatsForAdmin({
 
         if (reusableReleasedSponsorHold && !unavailableSeatLabels.has(seatLabel)) {
           selectedSourceHolds.push(reusableReleasedSponsorHold);
+          continue;
+        }
+
+        const seatTierId = getTierIdForSeatLabel(seatLabel);
+        if (!seatTierId) {
+          missingSeatReasons.push(`${seatLabel} (invalid seat label)`);
+          continue;
+        }
+
+        if (shouldAutoBlockOpenSeats && !unavailableSeatLabels.has(seatLabel)) {
+          autoBlockedSeatEntries.push({
+            seatLabel,
+            ticketTierId: seatTierId,
+          });
           continue;
         }
 
@@ -2342,12 +2498,19 @@ export async function issueBlockedSeatsForAdmin({
 
       if (missingSeatReasons.length > 0) {
         throw new TicketingStoreError(
-          `These seats are not currently in an issuable sponsor-block status: ${missingSeatReasons.join(", ")}.`,
+          shouldAutoBlockOpenSeats
+            ? `These seats cannot be auto-issued right now: ${missingSeatReasons.join(", ")}.`
+            : `These seats are not currently in an issuable sponsor-block status: ${missingSeatReasons.join(", ")}.`,
           409,
         );
       }
 
-      const tierIds = Array.from(new Set(selectedSourceHolds.map((hold) => hold.ticket_tier_id)));
+      const tierIds = Array.from(
+        new Set([
+          ...selectedSourceHolds.map((hold) => hold.ticket_tier_id),
+          ...autoBlockedSeatEntries.map((entry) => entry.ticketTierId),
+        ]),
+      );
 
       if (tierIds.length !== 1) {
         throw new TicketingStoreError(
@@ -2361,6 +2524,7 @@ export async function issueBlockedSeatsForAdmin({
       const orderId = randomUUID();
       const checkoutSessionId = getAdminIssuedCheckoutSessionId(orderId);
       const ticketQuantity = normalizedSeatLabels.length;
+      const autoBlockedSeatLabels = autoBlockedSeatEntries.map((entry) => entry.seatLabel);
 
       if (!tier) {
         throw new TicketingStoreError("Ticket tier could not be resolved for these blocked seats.", 500);
@@ -2486,11 +2650,37 @@ export async function issueBlockedSeatsForAdmin({
             ${notes?.trim() || ""}
           )
         `;
+
+        if (autoBlockedSeatLabels.includes(seatLabel)) {
+          await tx`
+            insert into ticket_admin_audit (
+              id,
+              actor_label,
+              action_type,
+              order_id,
+              seat_label_to,
+              notes
+            )
+            values (
+              ${randomUUID()},
+              ${actorLabel},
+              'seat_blocked_auto_issue',
+              ${orderId},
+              ${seatLabel},
+              ${notes?.trim() || ""}
+            )
+          `;
+        }
       }
 
       return {
+        autoBlockedSeatLabels,
         checkoutSessionId,
         issuedSeatLabels: normalizedSeatLabels,
+        message:
+          autoBlockedSeatLabels.length > 0
+            ? `Issued tickets and automatically locked ${autoBlockedSeatLabels.length} open seat${autoBlockedSeatLabels.length === 1 ? "" : "s"} during the same step.`
+            : undefined,
         orderId,
         purchaserEmail: normalizedPurchaserEmail,
         purchaserName: normalizedPurchaserName,

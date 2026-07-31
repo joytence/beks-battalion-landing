@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { adminInputProps, adminTextAreaProps } from "./adminFormProps";
 import { buildAdminRequestHeaders } from "./adminRequestHeaders";
 import styles from "../ticketing.module.css";
 
@@ -26,7 +27,6 @@ function normalizeSeatLabels(value: string) {
 }
 
 export function AdminSeatTools() {
-  const [adminSecret, setAdminSecret] = useState("");
   const [actorLabel, setActorLabel] = useState("");
   const [notes, setNotes] = useState("");
   const [seatLabelInput, setSeatLabelInput] = useState("");
@@ -35,11 +35,11 @@ export function AdminSeatTools() {
   const [submittingAction, setSubmittingAction] = useState<AdminAction | "">("");
 
   const seatLabels = useMemo(() => normalizeSeatLabels(seatLabelInput), [seatLabelInput]);
-  const canSubmit = adminSecret.trim().length > 0 && seatLabels.length > 0;
+  const canSubmit = seatLabels.length > 0;
 
   async function submit(action: AdminAction) {
     if (!canSubmit) {
-      setError("Enter the admin secret and at least one seat label.");
+      setError("Enter at least one seat label.");
       return;
     }
 
@@ -54,7 +54,7 @@ export function AdminSeatTools() {
           notes: notes.trim(),
           seatLabels,
         }),
-        headers: buildAdminRequestHeaders(adminSecret, {
+        headers: buildAdminRequestHeaders({
           "content-type": "application/json",
         }),
         method: action === "block" ? "POST" : "DELETE",
@@ -78,25 +78,15 @@ export function AdminSeatTools() {
     <div className={styles.adminPanelStack}>
       <div className={styles.notice}>
         Use the visible seat IDs from the map, such as `SA1-1`, `SB1-8`, `LW13-2`, or `RW14-1`.
-        The admin secret is only sent with this request and is not stored on the page.
+        Your signed admin session protects this page, so the shared password no longer has to be
+        pasted into every browser request.
       </div>
 
       <div className={styles.adminFormGrid}>
         <label className={styles.field}>
-          <span>Admin Secret</span>
-          <input
-            autoComplete="off"
-            className={styles.textInput}
-            onChange={(event) => setAdminSecret(event.target.value)}
-            placeholder="Enter TICKET_ADMIN_SECRET"
-            type="password"
-            value={adminSecret}
-          />
-        </label>
-
-        <label className={styles.field}>
           <span>Blockout Reason</span>
           <input
+            {...adminInputProps}
             className={styles.textInput}
             onChange={(event) => setActorLabel(event.target.value)}
             placeholder="Enter preview / peak note"
@@ -109,6 +99,7 @@ export function AdminSeatTools() {
       <label className={styles.field}>
         <span>Actual Visible Seat IDs From Map</span>
         <textarea
+          {...adminTextAreaProps}
           className={styles.textArea}
           onChange={(event) => setSeatLabelInput(event.target.value)}
           placeholder="SB1-5, SB1-6, SB1-7, SB1-8"
@@ -120,6 +111,7 @@ export function AdminSeatTools() {
       <label className={styles.field}>
         <span>Additional Notes</span>
         <textarea
+          {...adminTextAreaProps}
           className={styles.textArea}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Sponsor blackout before live payments"
