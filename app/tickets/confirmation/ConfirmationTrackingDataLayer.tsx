@@ -24,19 +24,9 @@ export function ConfirmationTrackingDataLayer({
   value,
 }: ConfirmationTrackingDataLayerProps) {
   useEffect(() => {
-    const storageKey = `ticket_purchase_confirmation:${transactionId}`;
-
-    try {
-      if (window.sessionStorage.getItem(storageKey) === "sent") {
-        return;
-      }
-    } catch {
-      // Ignore storage failures and continue pushing the event.
-    }
-
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({
-      event: "ticket_purchase_confirmation",
+      event: "purchase",
       transaction_id: transactionId,
       value,
       currency,
@@ -45,15 +35,11 @@ export function ConfirmationTrackingDataLayer({
       ecommerce: {
         currency,
         transaction_id: transactionId,
+        ticket_quantity: ticketQuantity,
+        ticket_type: ticketType,
         value,
       },
     });
-
-    try {
-      window.sessionStorage.setItem(storageKey, "sent");
-    } catch {
-      // Ignore storage failures after the push succeeds.
-    }
   }, [currency, ticketQuantity, ticketType, transactionId, value]);
 
   return null;
