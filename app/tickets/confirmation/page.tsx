@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
-import { ConfirmationTrackingDataLayer } from "./ConfirmationTrackingDataLayer";
 import { PrintTicketButton } from "../PrintTicketButton";
 import styles from "../ticketing.module.css";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
@@ -60,6 +59,10 @@ async function buildQrMarkup(value: string) {
     type: "svg",
     width: 256,
   });
+}
+
+function serializeInlineScriptValue(value: unknown) {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
 export default async function TicketConfirmationPage({
@@ -133,6 +136,7 @@ export default async function TicketConfirmationPage({
   const currency = session.currency || "usd";
   const amountTotal = session.amount_total || tier.priceCents * quantity;
   const amountTotalValue = Number((amountTotal / 100).toFixed(2));
+  const normalizedCurrency = currency.toUpperCase();
   const siteUrl = getSiteUrl();
   const eventDate = formatEventDate(eventDetails.dateIso);
   const assignmentFieldLabel = getTicketAssignmentFieldLabel(checkoutFlow);
@@ -248,14 +252,41 @@ export default async function TicketConfirmationPage({
     }),
   );
 
+  const purchaseDataLayerPayload = {
+    event: "purchase",
+    event_id: session.id,
+    transaction_id: session.id,
+    value: amountTotalValue,
+    currency: normalizedCurrency,
+    ticket_quantity: quantity,
+    ticket_type: tier.name,
+    ecommerce: {
+      transaction_id: session.id,
+      value: amountTotalValue,
+      currency: normalizedCurrency,
+      ticket_quantity: quantity,
+      ticket_type: tier.name,
+      items: [
+        {
+          item_id: tier.id,
+          item_name: `${eventDetails.name} - ${tier.name}`,
+          item_category: "tickets",
+          item_variant: tier.name,
+          price: Number((tier.priceCents / 100).toFixed(2)),
+          quantity,
+        },
+      ],
+    },
+  };
+  const purchaseDataLayerScript = `window.dataLayer = window.dataLayer || []; window.__ticketPurchase = ${serializeInlineScriptValue(
+    purchaseDataLayerPayload,
+  )}; window.dataLayer.push(window.__ticketPurchase);`;
+
   return (
     <main className={styles.receiptPage}>
-      <ConfirmationTrackingDataLayer
-        currency={currency.toUpperCase()}
-        ticketQuantity={quantity}
-        ticketType={tier.name}
-        transactionId={session.id}
-        value={amountTotalValue}
+      <script
+        id="ticket-purchase-data-layer"
+        dangerouslySetInnerHTML={{ __html: purchaseDataLayerScript }}
       />
       <section className={styles.receiptStatusCard}>
         <div className={styles.statusEyebrow}>Paid successfully</div>
