@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import Script from "next/script";
 import QRCode from "qrcode";
 import { PrintTicketButton } from "../PrintTicketButton";
 import styles from "../ticketing.module.css";
@@ -284,10 +285,12 @@ export default async function TicketConfirmationPage({
 
   return (
     <main className={styles.receiptPage}>
-      <script
+      <Script
         id="ticket-purchase-data-layer"
-        dangerouslySetInnerHTML={{ __html: purchaseDataLayerScript }}
-      />
+        strategy="afterInteractive"
+      >
+        {purchaseDataLayerScript}
+      </Script>
       <section className={styles.receiptStatusCard}>
         <div className={styles.statusEyebrow}>Paid successfully</div>
         <h1 className={styles.statusTitle}>Print-Ready Electronic Tickets</h1>
