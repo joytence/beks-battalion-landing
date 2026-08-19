@@ -27,6 +27,9 @@ export default function TicketAdminPage() {
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/seats">
             Seat Database
           </a>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/test-checkout">
+            $1 Test Checkout
+          </a>
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/api/tickets/admin/logout">
             Sign Out
           </a>

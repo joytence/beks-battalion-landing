@@ -18,6 +18,9 @@ export default function TicketAdminIssuePage() {
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/release">
             Release Paid Seats
           </a>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/test-checkout">
+            $1 Test Checkout
+          </a>
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets">
             Back to Ticket Page
           </a>
