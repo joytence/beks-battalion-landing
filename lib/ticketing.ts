@@ -4,7 +4,7 @@ const MAX_TICKETS_PER_ORDER = 10;
 
 export const eventDetails = {
   city: "San Diego",
-  dateIso: "2026-09-13T19:00:00-07:00",
+  dateIso: "2026-09-13T17:30:00-07:00",
   dateLabel: "Sep 13, 2026",
   name: "Beks Battalion",
   slug: "beks-battalion",

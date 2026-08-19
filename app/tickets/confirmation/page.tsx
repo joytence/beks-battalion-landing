@@ -134,6 +134,8 @@ export default async function TicketConfirmationPage({
 
   const purchaserName = session.customer_details?.name?.trim() || "Guest";
   const purchaserEmail = session.customer_details?.email?.trim() || session.customer_email?.trim() || "";
+  const purchaserPhone = session.customer_details?.phone?.trim() || "";
+  const normalizedMetaPhone = normalizePhoneNumber(purchaserPhone).replace(/\D/g, "");
   const currency = session.currency || "usd";
   const amountTotal = session.amount_total || tier.priceCents * quantity;
   const amountTotalValue = Number((amountTotal / 100).toFixed(2));
@@ -279,12 +281,28 @@ export default async function TicketConfirmationPage({
       ],
     },
   };
+  const metaAdvancedMatchingPayload: Record<string, string> = {
+    ...(purchaserEmail ? { em: purchaserEmail.toLowerCase() } : {}),
+    ...(normalizedMetaPhone ? { ph: normalizedMetaPhone } : {}),
+  };
+  const metaAdvancedMatchingScript =
+    Object.keys(metaAdvancedMatchingPayload).length > 0
+      ? `window.__joyStageMetaAdvancedMatching = ${serializeInlineScriptValue(
+          metaAdvancedMatchingPayload,
+        )};`
+      : "";
   const purchaseDataLayerScript = `window.dataLayer = window.dataLayer || []; window.__ticketPurchase = ${serializeInlineScriptValue(
     purchaseDataLayerPayload,
   )}; window.dataLayer.push(window.__ticketPurchase);`;
 
   return (
     <main className={styles.receiptPage}>
+      {metaAdvancedMatchingScript ? (
+        <script
+          id="ticket-meta-advanced-matching"
+          dangerouslySetInnerHTML={{ __html: metaAdvancedMatchingScript }}
+        />
+      ) : null}
       <Script
         id="ticket-purchase-data-layer"
         strategy="afterInteractive"

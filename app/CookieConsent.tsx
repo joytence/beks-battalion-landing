@@ -14,9 +14,11 @@ type FbqFunction = {
   queue?: unknown[];
   version?: string;
 };
+type MetaAdvancedMatchingData = Record<string, string>;
 
 declare global {
   interface Window {
+    __joyStageMetaAdvancedMatching?: MetaAdvancedMatchingData;
     fbq?: FbqFunction;
     _fbq?: Window["fbq"];
   }
@@ -42,6 +44,24 @@ function isMetaTrackingSuppressed() {
     params.get("tracking") === "off" ||
     params.get("internal") === "1"
   );
+}
+
+function getMetaAdvancedMatchingData() {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+
+  const advancedMatching = window.__joyStageMetaAdvancedMatching;
+
+  if (!advancedMatching) {
+    return undefined;
+  }
+
+  const cleanEntries = Object.entries(advancedMatching).filter(
+    ([, value]) => typeof value === "string" && value.trim().length > 0,
+  );
+
+  return cleanEntries.length > 0 ? Object.fromEntries(cleanEntries) : undefined;
 }
 
 function loadMetaPixel() {
@@ -70,7 +90,14 @@ function loadMetaPixel() {
   const firstScript = document.getElementsByTagName("script")[0];
   firstScript?.parentNode?.insertBefore(script, firstScript);
 
-  window.fbq("init", metaPixelId);
+  const advancedMatching = getMetaAdvancedMatchingData();
+
+  if (advancedMatching) {
+    window.fbq("init", metaPixelId, advancedMatching);
+  } else {
+    window.fbq("init", metaPixelId);
+  }
+
   window.fbq("track", "PageView");
 }
 

@@ -4,7 +4,10 @@ import { HeroCarousel } from "./HeroCarousel";
 import { HeroCountdown } from "./HeroCountdown";
 import { InquiryAction } from "./InquiryAction";
 import { TopbarActions } from "./TopbarActions";
-import { eventDetails } from "@/lib/ticketing";
+import { eventDetails, getTicketSeatChart } from "@/lib/ticketing";
+import { getUnavailableSeatLabels, isTicketingDatabaseConfigured } from "@/lib/ticketing-store";
+
+export const dynamic = "force-dynamic";
 
 const marqueeItems = [
   "Beks Battalion",
@@ -118,6 +121,29 @@ function TicketStars({ count }: { count: number }) {
   );
 }
 
+function TicketTrustIcon({ icon }: { icon: "secure" | "ticket" | "seat" }) {
+  switch (icon) {
+    case "secure":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 2.2 4.8 5v6.18c0 4.5 2.84 8.58 7.2 10.16 4.36-1.58 7.2-5.66 7.2-10.16V5L12 2.2Zm0 3.04 4.7 1.82v4.12c0 3.18-1.89 6.1-4.7 7.36-2.81-1.26-4.7-4.18-4.7-7.36V7.06L12 5.24Zm0 2.36a2.7 2.7 0 0 0-2.7 2.7v1.1H8.4v4.74h7.2V11.4h-.9v-1.1A2.7 2.7 0 0 0 12 7.6Zm0 1.8c.5 0 .9.4.9.9v1.1h-1.8v-1.1c0-.5.4-.9.9-.9Z" />
+        </svg>
+      );
+    case "ticket":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M4.2 7.2A2.2 2.2 0 0 1 6.4 5h11.2a2.2 2.2 0 0 1 2.2 2.2v2.12a1.96 1.96 0 0 0 0 3.92v2.54A2.2 2.2 0 0 1 17.6 18H6.4a2.2 2.2 0 0 1-2.2-2.2v-2.54a1.96 1.96 0 0 0 0-3.92V7.2Zm4.1-.4v1.6h1.5V6.8H8.3Zm0 3.04v1.6h1.5v-1.6H8.3Zm0 3.04v1.6h1.5v-1.6H8.3Zm0 3.04v1.2h1.5v-1.2H8.3Zm3.12-5.28h5.02v-1.8h-5.02v1.8Z" />
+        </svg>
+      );
+    case "seat":
+      return (
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M8.2 4.4a2.6 2.6 0 1 1 5.2 0v4.2a2.6 2.6 0 1 1-5.2 0V4.4Zm-3 6.8A2.2 2.2 0 0 1 7.4 9h6.8a2.2 2.2 0 0 1 2.2 2.2v4.12H18a1.8 1.8 0 0 1 1.8 1.8v2.48h-1.9V18h-11v1.6H5V17.1a1.8 1.8 0 0 1 1.8-1.8h.6v-4.1Zm2 3.98h7.2v-3.86a.3.3 0 0 0-.3-.3H7.5a.3.3 0 0 0-.3.3v3.86Z" />
+        </svg>
+      );
+  }
+}
+
 const ticketTiers = [
   {
     id: "svip",
@@ -128,6 +154,7 @@ const ticketTiers = [
     featured: false,
     callout: "Selling Fast",
     calloutIcon: "fire",
+    inventoryNote: "SVIP tickets almost sold out",
     perks: ["Front row seating", "Meet and greet access", "Photo opportunity"],
   },
   {
@@ -161,6 +188,45 @@ const ticketComparisonRows = [
   { feature: "Photo Opportunity", svip: true, vip: false, ga: false },
   { feature: "Reserved Seating", svip: true, vip: true, ga: true },
 ] as const;
+
+const ticketTrustNotes = [
+  { label: "Secure payment with Stripe", icon: "secure" },
+  { label: "Instant e-ticket delivery", icon: "ticket" },
+  { label: "Reserved seating guaranteed", icon: "seat" },
+] as const;
+
+async function getSvipTicketsLeft() {
+  if (!isTicketingDatabaseConfigured()) {
+    return null;
+  }
+
+  try {
+    const unavailableSeatLabels = await getUnavailableSeatLabels();
+    const seatChart = getTicketSeatChart({ blockedSeatLabels: unavailableSeatLabels });
+
+    return seatChart.blocks
+      .flatMap((block) => block.rows)
+      .flatMap((row) => row.seats)
+      .filter((seat) => seat.tierId === "svip" && seat.status === "available").length;
+  } catch (error) {
+    console.error("Unable to load SVIP ticket availability.", error);
+    return null;
+  }
+}
+
+function getSvipInventoryNote(svipTicketsLeft: number | null) {
+  if (svipTicketsLeft === null) {
+    return "SVIP tickets almost sold out";
+  }
+
+  if (svipTicketsLeft <= 0) {
+    return "SVIP sold out";
+  }
+
+  return svipTicketsLeft === 1
+    ? "Only 1 SVIP ticket left"
+    : `Only ${svipTicketsLeft} SVIP tickets left`;
+}
 
 const sponsors = [
   {
@@ -267,7 +333,9 @@ function SocialIcon({ icon }: { icon: (typeof socialLinks)[number]["icon"] }) {
   }
 }
 
-export default function Page() {
+export default async function Page() {
+  const svipTicketsLeft = await getSvipTicketsLeft();
+
   return (
     <main className="shell">
       <header className="topbar">
@@ -405,42 +473,64 @@ export default function Page() {
                 </aside>
 
                 <div className="ticket-poster__tiers">
-                  {ticketTiers.map((tier) => (
-                    <article
-                      key={tier.name}
-                      className={`ticket-card ticket-card--${tier.tone} ${
-                        tier.featured ? "ticket-card--featured" : ""
-                      }`}
-                      tabIndex={0}
-                    >
-                      {"callout" in tier && tier.callout ? (
-                        <div className="ticket-card__callout" aria-label={tier.callout}>
-                          {tier.calloutIcon === "fire" ? <span aria-hidden="true">🔥</span> : null}
-                          {tier.callout}
-                        </div>
-                      ) : null}
-                      {tier.stars > 0 ? <TicketStars count={tier.stars} /> : null}
-                      <h3
-                        className={`ticket-card__name ${
-                          tier.name === "General Admission" ? "ticket-card__name--long" : ""
+                  {ticketTiers.map((tier) => {
+                    const tierInventoryNote = "inventoryNote" in tier ? tier.inventoryNote : "";
+                    const inventoryNote =
+                      tier.id === "svip" ? getSvipInventoryNote(svipTicketsLeft) : tierInventoryNote;
+
+                    return (
+                      <article
+                        key={tier.name}
+                        className={`ticket-card ticket-card--${tier.tone} ${
+                          tier.featured ? "ticket-card--featured" : ""
                         }`}
+                        tabIndex={0}
                       >
-                        {tier.name}
-                      </h3>
-                      <div className="ticket-card__price">{tier.price}</div>
-                      <ul className="ticket-card__perks">
-                        {tier.perks.map((perk) => (
-                          <li key={perk}>{perk}</li>
-                        ))}
-                      </ul>
-                      <a
-                        className="cta cta--ghost ticket-card__buy"
-                        href="/tickets"
-                      >
-                        Buy Now
-                      </a>
-                    </article>
-                  ))}
+                        {"callout" in tier && tier.callout ? (
+                          <div className="ticket-card__callout" aria-label={tier.callout}>
+                            {tier.calloutIcon === "fire" ? <span aria-hidden="true">🔥</span> : null}
+                            {tier.callout}
+                          </div>
+                        ) : null}
+                        {tier.stars > 0 ? <TicketStars count={tier.stars} /> : null}
+                        <h3
+                          className={`ticket-card__name ${
+                            tier.name === "General Admission" ? "ticket-card__name--long" : ""
+                          }`}
+                        >
+                          {tier.name}
+                        </h3>
+                        <div className="ticket-card__price">{tier.price}</div>
+                        {inventoryNote ? (
+                          <div className="ticket-card__inventory" aria-label={inventoryNote}>
+                            <span className="ticket-card__inventory-dot" aria-hidden="true" />
+                            <span>{inventoryNote}</span>
+                          </div>
+                        ) : null}
+                        <ul className="ticket-card__perks">
+                          {tier.perks.map((perk) => (
+                            <li key={perk}>{perk}</li>
+                          ))}
+                        </ul>
+                        <a
+                          className="cta cta--ghost ticket-card__buy"
+                          href="/tickets"
+                        >
+                          Buy Now
+                        </a>
+                        <ul className="ticket-card__trust" aria-label={`${tier.name} checkout trust details`}>
+                          {ticketTrustNotes.map((note) => (
+                            <li key={note.label}>
+                              <span className="ticket-card__trust-icon" aria-hidden="true">
+                                <TicketTrustIcon icon={note.icon} />
+                              </span>
+                              <span>{note.label}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </article>
+                    );
+                  })}
                 </div>
               </div>
             </div>

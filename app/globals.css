@@ -776,6 +776,39 @@ a {
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.16);
 }
 
+.ticket-card__inventory {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  align-self: center;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.26);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 248, 214, 0.3),
+    0 8px 18px rgba(91, 28, 0, 0.12);
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 0.88rem;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-align: center;
+  text-transform: uppercase;
+  color: rgba(255, 248, 214, 0.96);
+}
+
+.ticket-card__inventory-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ff2d7a;
+  box-shadow: 0 0 14px rgba(255, 45, 122, 0.75);
+  flex: 0 0 auto;
+}
+
 .ticket-card__perks {
   position: relative;
   z-index: 1;
@@ -804,10 +837,53 @@ a {
   box-sizing: border-box;
 }
 
-.ticket-card:hover,
-.ticket-card:focus-visible,
-.ticket-card:focus-within,
-.ticket-card:active,
+.ticket-card__buy:hover {
+  transform: translateY(-2px);
+  color: #000;
+  background: var(--gold-soft);
+  border-color: var(--gold-soft);
+  box-shadow: 0 12px 30px rgba(255, 198, 54, 0.18);
+}
+
+.ticket-card__trust {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  opacity: 0.92;
+}
+
+.ticket-card__trust li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.ticket-card__trust-icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+  opacity: 0.95;
+}
+
+.ticket-card__trust-icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  fill: currentColor;
+}
+
 .sponsor-card:hover,
 .sponsor-card:focus-visible,
 .sponsor-card:focus-within,
@@ -1827,10 +1903,6 @@ a {
     transition: none;
   }
 
-  .ticket-card:hover,
-  .ticket-card:focus-visible,
-  .ticket-card:focus-within,
-  .ticket-card:active,
   .lineup-card:hover,
   .lineup-card:focus-visible,
   .lineup-card:focus-within,
@@ -2626,7 +2698,7 @@ a {
 
   .ticket-card {
     min-height: 214px;
-    padding: 16px 16px 14px;
+    padding: 26px 16px 24px;
   }
 
   .ticket-card__price {
@@ -2636,6 +2708,12 @@ a {
   .ticket-card__name--long {
     font-size: 2.4rem;
     letter-spacing: 0.07em;
+  }
+
+  .ticket-card__trust {
+    margin-top: 12px;
+    gap: 5px;
+    font-size: 0.72rem;
   }
 
   .cookie-consent {
