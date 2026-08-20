@@ -226,6 +226,14 @@ export default async function TicketConfirmationPage({
           ticketIndex: index + 1,
         }));
 
+  console.info("Ticket confirmation page rendered", {
+    checkoutFlow,
+    paymentStatus: session.payment_status,
+    quantity,
+    sessionId: session.id,
+    ticketTierId: tier.id,
+  });
+
   const tickets = await Promise.all(
     ticketsToRender.map(async ({ seatLabel, ticketIndex }) => {
       const assignmentLabel = getTicketAssignmentLabel(
