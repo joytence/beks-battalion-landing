@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import Script from "next/script";
 import QRCode from "qrcode";
+import {
+  PurchaseDataLayerPush,
+  type PurchaseDataLayerPayload,
+} from "./PurchaseDataLayerPush";
 import { PrintTicketButton } from "../PrintTicketButton";
 import styles from "../ticketing.module.css";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
@@ -60,10 +63,6 @@ async function buildQrMarkup(value: string) {
     type: "svg",
     width: 256,
   });
-}
-
-function serializeInlineScriptValue(value: unknown) {
-  return JSON.stringify(value).replace(/</g, "\\u003c");
 }
 
 export default async function TicketConfirmationPage({
@@ -280,35 +279,18 @@ export default async function TicketConfirmationPage({
         },
       ],
     },
-  };
+  } satisfies PurchaseDataLayerPayload;
   const metaAdvancedMatchingPayload: Record<string, string> = {
     ...(purchaserEmail ? { em: purchaserEmail.toLowerCase() } : {}),
     ...(normalizedMetaPhone ? { ph: normalizedMetaPhone } : {}),
   };
-  const metaAdvancedMatchingScript =
-    Object.keys(metaAdvancedMatchingPayload).length > 0
-      ? `window.__joyStageMetaAdvancedMatching = ${serializeInlineScriptValue(
-          metaAdvancedMatchingPayload,
-        )};`
-      : "";
-  const purchaseDataLayerScript = `window.dataLayer = window.dataLayer || []; window.__ticketPurchase = ${serializeInlineScriptValue(
-    purchaseDataLayerPayload,
-  )}; window.dataLayer.push(window.__ticketPurchase);`;
 
   return (
     <main className={styles.receiptPage}>
-      {metaAdvancedMatchingScript ? (
-        <script
-          id="ticket-meta-advanced-matching"
-          dangerouslySetInnerHTML={{ __html: metaAdvancedMatchingScript }}
-        />
-      ) : null}
-      <Script
-        id="ticket-purchase-data-layer"
-        strategy="afterInteractive"
-      >
-        {purchaseDataLayerScript}
-      </Script>
+      <PurchaseDataLayerPush
+        metaAdvancedMatching={metaAdvancedMatchingPayload}
+        purchase={purchaseDataLayerPayload}
+      />
       <section className={styles.receiptStatusCard}>
         <div className={styles.statusEyebrow}>Paid successfully</div>
         <h1 className={styles.statusTitle}>Print-Ready Electronic Tickets</h1>
