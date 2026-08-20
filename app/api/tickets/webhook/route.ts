@@ -25,26 +25,101 @@ import {
 } from "@/lib/ticketing-store";
 import { getTicketTierById } from "@/lib/ticketing";
 
-async function sendStripePurchaseMetaEvent(session: Stripe.Checkout.Session, eventCreated: number) {
-  const amountTotalValue = Number(((session.amount_total || 0) / 100).toFixed(2));
-  const currency = (session.currency || "usd").toUpperCase();
-  const ticketQuantity = Number(session.metadata?.ticket_quantity || "0");
+function centsToValue(cents: number) {
+  return Number((cents / 100).toFixed(2));
+}
+
+function parseMetadataCents(value: string | undefined) {
+  const cents = Number(value || "0");
+  return Number.isFinite(cents) && cents > 0 ? cents : 0;
+}
+
+function parseMetadataQuantity(value: string | undefined) {
+  const quantity = Number(value || "0");
+  return Number.isFinite(quantity) && quantity > 0 ? Math.floor(quantity) : 0;
+}
+
+function getStripePurchaseAmounts(session: Stripe.Checkout.Session) {
+  const ticketQuantity = parseMetadataQuantity(session.metadata?.ticket_quantity);
   const ticketTierId = session.metadata?.ticket_tier_id || "";
-  const ticketType = getTicketTierById(ticketTierId)?.name || ticketTierId;
+  const tier = getTicketTierById(ticketTierId);
+  const ticketType = tier?.name || ticketTierId;
+  const processingFeeCents = parseMetadataCents(session.metadata?.processing_fee_cents);
+  const expectedTicketSubtotalCents = tier ? tier.priceCents * ticketQuantity : 0;
+  const expectedCheckoutSubtotalCents = expectedTicketSubtotalCents + processingFeeCents;
+  const stripeAmountSubtotalCents = session.amount_subtotal || 0;
+  const stripeAmountTotalCents = session.amount_total || 0;
+  const stripeTaxCents = session.total_details?.amount_tax || 0;
+  const stripeDiscountCents = session.total_details?.amount_discount || 0;
+  const valueCents = stripeAmountTotalCents || expectedCheckoutSubtotalCents;
+
+  return {
+    expectedCheckoutSubtotalCents,
+    expectedCheckoutSubtotalValue: centsToValue(expectedCheckoutSubtotalCents),
+    expectedTicketSubtotalCents,
+    expectedTicketSubtotalValue: centsToValue(expectedTicketSubtotalCents),
+    processingFeeCents,
+    processingFeeValue: centsToValue(processingFeeCents),
+    stripeAmountSubtotalCents,
+    stripeAmountSubtotalValue: centsToValue(stripeAmountSubtotalCents),
+    stripeAmountTotalCents,
+    stripeAmountTotalValue: centsToValue(stripeAmountTotalCents),
+    stripeDiscountCents,
+    stripeDiscountValue: centsToValue(stripeDiscountCents),
+    stripeTaxCents,
+    stripeTaxValue: centsToValue(stripeTaxCents),
+    ticketQuantity,
+    ticketTierId,
+    ticketType,
+    valueCents,
+    valueSource: stripeAmountTotalCents > 0 ? "stripe_amount_total" : "expected_checkout_subtotal",
+    value: centsToValue(valueCents),
+  };
+}
+
+async function sendStripePurchaseMetaEvent(session: Stripe.Checkout.Session, eventCreated: number) {
+  const amounts = getStripePurchaseAmounts(session);
+  const currency = (session.currency || "usd").toUpperCase();
+  const isAdminTestCheckout = session.metadata?.admin_test_checkout === "true";
+
+  if (
+    !isAdminTestCheckout &&
+    amounts.stripeAmountTotalCents > 0 &&
+    amounts.expectedTicketSubtotalCents > 0 &&
+    amounts.stripeAmountTotalCents < amounts.expectedTicketSubtotalCents
+  ) {
+    console.warn("Stripe purchase amount is lower than expected ticket subtotal", {
+      currency,
+      expectedTicketSubtotalValue: amounts.expectedTicketSubtotalValue,
+      sessionId: session.id,
+      stripeAmountTotalValue: amounts.stripeAmountTotalValue,
+      ticketQuantity: amounts.ticketQuantity,
+      ticketType: amounts.ticketType,
+    });
+  }
 
   try {
     const metaEvent = await sendMetaCapiEvent({
       customData: {
+        admin_test_checkout: isAdminTestCheckout || undefined,
         content_category: "tickets",
         content_name: session.metadata?.event_slug || "beks-battalion",
         currency,
-        num_items: ticketQuantity || undefined,
+        expected_checkout_subtotal: amounts.expectedCheckoutSubtotalValue || undefined,
+        expected_ticket_subtotal: amounts.expectedTicketSubtotalValue || undefined,
+        num_items: amounts.ticketQuantity || undefined,
         order_id: session.id,
+        processing_fee: amounts.processingFeeValue || undefined,
+        stripe_amount_subtotal: amounts.stripeAmountSubtotalValue || undefined,
+        stripe_amount_total: amounts.stripeAmountTotalValue || undefined,
+        stripe_discount: amounts.stripeDiscountValue || undefined,
+        stripe_tax: amounts.stripeTaxValue || undefined,
+        ticket_quantity: amounts.ticketQuantity || undefined,
+        ticket_type: amounts.ticketType,
+        ticket_tier_id: amounts.ticketTierId,
         transaction_id: session.id,
-        ticket_quantity: ticketQuantity || undefined,
-        ticket_type: ticketType,
-        ticket_tier_id: ticketTierId,
-        value: amountTotalValue,
+        value: amounts.value,
+        value_source: amounts.valueSource,
       },
       email: session.customer_details?.email || session.customer_email || undefined,
       eventId: session.id,
@@ -63,11 +138,20 @@ async function sendStripePurchaseMetaEvent(session: Stripe.Checkout.Session, eve
       console.warn("Meta CAPI purchase event skipped:", metaEvent.reason);
     } else {
       console.info("Meta CAPI purchase event sent:", {
-        amountTotalValue,
         currency,
+        expectedCheckoutSubtotalValue: amounts.expectedCheckoutSubtotalValue,
+        expectedTicketSubtotalValue: amounts.expectedTicketSubtotalValue,
+        isAdminTestCheckout,
+        processingFeeValue: amounts.processingFeeValue,
         sessionId: session.id,
-        ticketQuantity,
-        ticketType,
+        stripeAmountSubtotalValue: amounts.stripeAmountSubtotalValue,
+        stripeAmountTotalValue: amounts.stripeAmountTotalValue,
+        stripeDiscountValue: amounts.stripeDiscountValue,
+        stripeTaxValue: amounts.stripeTaxValue,
+        ticketQuantity: amounts.ticketQuantity,
+        ticketType: amounts.ticketType,
+        value: amounts.value,
+        valueSource: amounts.valueSource,
       });
     }
   } catch (error) {
@@ -119,14 +203,25 @@ export async function POST(request: Request) {
       let claimedSmsOrder:
         | Awaited<ReturnType<typeof claimCustomerReceiptSmsSend>>
         | null = null;
+      const amounts = getStripePurchaseAmounts(session);
 
       console.info("Stripe ticket payment confirmed", {
+        amountTotalValue: amounts.stripeAmountTotalValue,
         checkoutFlow: session.metadata?.checkout_flow || "",
+        expectedCheckoutSubtotalValue: amounts.expectedCheckoutSubtotalValue,
+        expectedTicketSubtotalValue: amounts.expectedTicketSubtotalValue,
+        isAdminTestCheckout: session.metadata?.admin_test_checkout === "true",
         orderId: session.metadata?.order_id || "",
         paymentStatus: session.payment_status,
+        processingFeeValue: amounts.processingFeeValue,
         seatLabels: session.metadata?.seat_labels || "",
         sessionId: session.id,
-        ticketTierId: session.metadata?.ticket_tier_id || "",
+        stripeAmountSubtotalValue: amounts.stripeAmountSubtotalValue,
+        stripeDiscountValue: amounts.stripeDiscountValue,
+        stripeTaxValue: amounts.stripeTaxValue,
+        ticketQuantity: amounts.ticketQuantity,
+        ticketTierId: amounts.ticketTierId,
+        ticketType: amounts.ticketType,
       });
 
       await sendStripePurchaseMetaEvent(session, event.created);
