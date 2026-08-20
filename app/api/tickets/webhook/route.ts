@@ -25,6 +25,56 @@ import {
 } from "@/lib/ticketing-store";
 import { getTicketTierById } from "@/lib/ticketing";
 
+async function sendStripePurchaseMetaEvent(session: Stripe.Checkout.Session, eventCreated: number) {
+  const amountTotalValue = Number(((session.amount_total || 0) / 100).toFixed(2));
+  const currency = (session.currency || "usd").toUpperCase();
+  const ticketQuantity = Number(session.metadata?.ticket_quantity || "0");
+  const ticketTierId = session.metadata?.ticket_tier_id || "";
+  const ticketType = getTicketTierById(ticketTierId)?.name || ticketTierId;
+
+  try {
+    const metaEvent = await sendMetaCapiEvent({
+      customData: {
+        content_category: "tickets",
+        content_name: session.metadata?.event_slug || "beks-battalion",
+        currency,
+        num_items: ticketQuantity || undefined,
+        order_id: session.id,
+        transaction_id: session.id,
+        ticket_quantity: ticketQuantity || undefined,
+        ticket_type: ticketType,
+        ticket_tier_id: ticketTierId,
+        value: amountTotalValue,
+      },
+      email: session.customer_details?.email || session.customer_email || undefined,
+      eventId: session.id,
+      eventName: "Purchase",
+      eventSourceUrl: `https://www.joystageproductions.com/tickets/confirmation?session_id=${encodeURIComponent(session.id)}`,
+      eventTime: eventCreated,
+      phone: session.customer_details?.phone || undefined,
+      testEventCode: session.livemode
+        ? undefined
+        : process.env.META_TEST_EVENT_CODE?.trim() || undefined,
+    });
+
+    if (!metaEvent.ok) {
+      console.error("Meta CAPI purchase event error:", metaEvent.reason);
+    } else if (metaEvent.skipped) {
+      console.warn("Meta CAPI purchase event skipped:", metaEvent.reason);
+    } else {
+      console.info("Meta CAPI purchase event sent:", {
+        amountTotalValue,
+        currency,
+        sessionId: session.id,
+        ticketQuantity,
+        ticketType,
+      });
+    }
+  } catch (error) {
+    console.error("Meta CAPI purchase event failed unexpectedly:", error);
+  }
+}
+
 export async function POST(request: Request) {
   if (!isStripeConfigured() || !isStripeWebhookConfigured()) {
     return NextResponse.json(
@@ -69,6 +119,17 @@ export async function POST(request: Request) {
       let claimedSmsOrder:
         | Awaited<ReturnType<typeof claimCustomerReceiptSmsSend>>
         | null = null;
+
+      console.info("Stripe ticket payment confirmed", {
+        checkoutFlow: session.metadata?.checkout_flow || "",
+        orderId: session.metadata?.order_id || "",
+        paymentStatus: session.payment_status,
+        seatLabels: session.metadata?.seat_labels || "",
+        sessionId: session.id,
+        ticketTierId: session.metadata?.ticket_tier_id || "",
+      });
+
+      await sendStripePurchaseMetaEvent(session, event.created);
 
       try {
         await syncReservedSeatPaymentConfirmed(session);
@@ -131,58 +192,6 @@ export async function POST(request: Request) {
           },
           { status: 500 },
         );
-      }
-
-      console.info("Stripe ticket payment confirmed", {
-        checkoutFlow: session.metadata?.checkout_flow || "",
-        orderId: session.metadata?.order_id || "",
-        paymentStatus: session.payment_status,
-        seatLabels: session.metadata?.seat_labels || "",
-        sessionId: session.id,
-        ticketTierId: session.metadata?.ticket_tier_id || "",
-      });
-
-      const amountTotalValue = Number(((session.amount_total || 0) / 100).toFixed(2));
-      const currency = (session.currency || "usd").toUpperCase();
-      const ticketQuantity = Number(session.metadata?.ticket_quantity || "0");
-      const ticketTierId = session.metadata?.ticket_tier_id || "";
-      const ticketType = getTicketTierById(ticketTierId)?.name || ticketTierId;
-      const metaEvent = await sendMetaCapiEvent({
-        customData: {
-          content_category: "tickets",
-          content_name: event.data.object.metadata?.event_slug || "beks-battalion",
-          currency,
-          num_items: ticketQuantity || undefined,
-          order_id: session.id,
-          transaction_id: session.id,
-          ticket_quantity: ticketQuantity || undefined,
-          ticket_type: ticketType,
-          ticket_tier_id: ticketTierId,
-          value: amountTotalValue,
-        },
-        email: session.customer_details?.email || session.customer_email || undefined,
-        eventId: session.id,
-        eventName: "Purchase",
-        eventSourceUrl: `https://www.joystageproductions.com/tickets/confirmation?session_id=${encodeURIComponent(session.id)}`,
-        eventTime: event.created,
-        phone: session.customer_details?.phone || undefined,
-        testEventCode: session.livemode
-          ? undefined
-          : process.env.META_TEST_EVENT_CODE?.trim() || undefined,
-      });
-
-      if (!metaEvent.ok) {
-        console.error("Meta CAPI purchase event error:", metaEvent.reason);
-      } else if (metaEvent.skipped) {
-        console.warn("Meta CAPI purchase event skipped:", metaEvent.reason);
-      } else {
-        console.info("Meta CAPI purchase event sent:", {
-          amountTotalValue,
-          currency,
-          sessionId: session.id,
-          ticketQuantity,
-          ticketType,
-        });
       }
       break;
     }
