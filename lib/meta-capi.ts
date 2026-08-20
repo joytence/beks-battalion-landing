@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 
 type MetaEventCustomData = Record<string, string | number | boolean | null | undefined>;
 
+const defaultMetaPixelId = "2036904920238359";
+
 export type MetaCapiEventInput = {
   clientIpAddress?: string;
   clientUserAgent?: string;
@@ -69,6 +71,21 @@ function toCustomData(customData?: MetaEventCustomData) {
   );
 }
 
+function getMetaPixelId() {
+  const configuredPixelId = process.env.META_PIXEL_ID?.trim();
+
+  if (!configuredPixelId) {
+    return defaultMetaPixelId;
+  }
+
+  if (/^\d+$/.test(configuredPixelId)) {
+    return configuredPixelId;
+  }
+
+  console.warn("META_PIXEL_ID is not numeric. Falling back to the Joy Stage Meta Pixel ID.");
+  return defaultMetaPixelId;
+}
+
 export function getMetaTrackingContext(request: Request) {
   const forwardedFor = request.headers.get("x-forwarded-for") || "";
   const clientIpAddress = forwardedFor.split(",")[0]?.trim() || "";
@@ -86,7 +103,7 @@ export function getMetaTrackingContext(request: Request) {
 export async function sendMetaCapiEvent(
   input: MetaCapiEventInput,
 ): Promise<MetaCapiEventResult> {
-  const pixelId = process.env.META_PIXEL_ID || "2036904920238359";
+  const pixelId = getMetaPixelId();
   const accessToken = process.env.META_CAPI_ACCESS_TOKEN?.trim();
 
   if (!accessToken) {

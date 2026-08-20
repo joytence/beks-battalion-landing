@@ -166,7 +166,9 @@ export async function POST(request: Request) {
         eventSourceUrl: `https://www.joystageproductions.com/tickets/confirmation?session_id=${encodeURIComponent(session.id)}`,
         eventTime: event.created,
         phone: session.customer_details?.phone || undefined,
-        testEventCode: process.env.META_TEST_EVENT_CODE?.trim() || undefined,
+        testEventCode: session.livemode
+          ? undefined
+          : process.env.META_TEST_EVENT_CODE?.trim() || undefined,
       });
 
       if (!metaEvent.ok) {
