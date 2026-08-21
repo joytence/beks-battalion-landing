@@ -117,6 +117,9 @@ type TicketOrderRecord = {
   customerReceiptSmsLockedAt: Date | null;
   customerReceiptSmsSentAt: Date | null;
   customerReceiptSmsStatus: string;
+  metaCapiPurchaseLockedAt?: Date | null;
+  metaCapiPurchaseSentAt?: Date | null;
+  metaCapiPurchaseStatus?: string;
   currency: string;
   eventSlug: string;
   id: string;
@@ -354,6 +357,9 @@ async function initializeSchema(sql: Sql) {
       customer_receipt_sms_status text not null default 'pending',
       customer_receipt_sms_locked_at timestamptz,
       customer_receipt_sms_sent_at timestamptz,
+      meta_capi_purchase_status text not null default 'pending',
+      meta_capi_purchase_locked_at timestamptz,
+      meta_capi_purchase_sent_at timestamptz,
       sms_consent_opt_in boolean not null default false,
       sms_consent_source text,
       sms_consent_updated_at timestamptz,
@@ -398,6 +404,18 @@ async function initializeSchema(sql: Sql) {
   await sql`
     alter table ticket_orders
     add column if not exists customer_receipt_sms_sent_at timestamptz
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists meta_capi_purchase_status text not null default 'pending'
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists meta_capi_purchase_locked_at timestamptz
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists meta_capi_purchase_sent_at timestamptz
   `;
   await sql`
     alter table ticket_orders
@@ -1588,6 +1606,80 @@ export async function markCustomerReceiptEmailFailed(orderId: string) {
       update ticket_orders
       set customer_receipt_email_status = 'failed',
           customer_receipt_email_locked_at = null,
+          updated_at = now()
+      where id = ${orderId}
+    `;
+  });
+}
+
+export async function claimMetaCapiPurchaseEventSend(checkoutSessionId: string) {
+  return withStore(async (sql) =>
+    sql.begin(async (tx) => {
+      const orders = await tx<
+        {
+          id: string;
+          metaCapiPurchaseLockedAt: Date | null;
+          metaCapiPurchaseSentAt: Date | null;
+          metaCapiPurchaseStatus: string;
+        }[]
+      >`
+        select
+          ticket_orders.id,
+          ticket_orders.meta_capi_purchase_locked_at as "metaCapiPurchaseLockedAt",
+          ticket_orders.meta_capi_purchase_sent_at as "metaCapiPurchaseSentAt",
+          coalesce(ticket_orders.meta_capi_purchase_status, 'pending') as "metaCapiPurchaseStatus"
+        from ticket_orders
+        where ticket_orders.checkout_session_id = ${checkoutSessionId}
+        limit 1
+        for update
+      `;
+      const order = orders[0];
+
+      if (!order || order.metaCapiPurchaseSentAt) {
+        return null;
+      }
+
+      const lockedAt = order.metaCapiPurchaseLockedAt?.getTime() || 0;
+      const lockIsFresh = lockedAt > Date.now() - 15 * 60_000;
+
+      if (order.metaCapiPurchaseStatus === "sending" && lockIsFresh) {
+        return null;
+      }
+
+      await tx`
+        update ticket_orders
+        set meta_capi_purchase_status = 'sending',
+            meta_capi_purchase_locked_at = now(),
+            updated_at = now()
+        where id = ${order.id}
+      `;
+
+      return {
+        id: order.id,
+      };
+    }),
+  );
+}
+
+export async function markMetaCapiPurchaseEventSent(orderId: string) {
+  return withStore(async (sql) => {
+    await sql`
+      update ticket_orders
+      set meta_capi_purchase_status = 'sent',
+          meta_capi_purchase_sent_at = now(),
+          meta_capi_purchase_locked_at = null,
+          updated_at = now()
+      where id = ${orderId}
+    `;
+  });
+}
+
+export async function markMetaCapiPurchaseEventFailed(orderId: string) {
+  return withStore(async (sql) => {
+    await sql`
+      update ticket_orders
+      set meta_capi_purchase_status = 'failed',
+          meta_capi_purchase_locked_at = null,
           updated_at = now()
       where id = ${orderId}
     `;

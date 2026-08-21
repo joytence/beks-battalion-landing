@@ -8,6 +8,7 @@ import {
 import { PrintTicketButton } from "../PrintTicketButton";
 import styles from "../ticketing.module.css";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { sendClaimedStripePurchaseMetaEvent } from "@/lib/stripe-purchase-tracking";
 import {
   sendReservedSeatReceiptEmail,
   sendReservedSeatSaleNotificationEmail,
@@ -153,6 +154,11 @@ export default async function TicketConfirmationPage({
 
     try {
       await syncReservedSeatPaymentConfirmed(session);
+      await sendClaimedStripePurchaseMetaEvent(
+        session,
+        session.created || Math.floor(Date.now() / 1000),
+        "confirmation_page",
+      );
       claimedOrder = await claimCustomerReceiptEmailSend(session.id);
 
       if (claimedOrder) {
