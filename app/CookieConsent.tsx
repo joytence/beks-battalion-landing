@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 const consentStorageKey = "joy-stage-tracking-consent";
 const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "2036904920238359";
+const internalTrafficCookieName = "jsp_internal";
 
 type ConsentChoice = "accepted" | "declined";
 type FbqFunction = {
@@ -33,6 +34,29 @@ function getStoredConsent(): ConsentChoice | null {
   return stored === "accepted" || stored === "declined" ? stored : null;
 }
 
+function getCookieValue(name: string) {
+  if (typeof document === "undefined") {
+    return "";
+  }
+
+  const encodedName = `${encodeURIComponent(name)}=`;
+  const cookies = document.cookie.split(";");
+
+  for (const cookie of cookies) {
+    const trimmed = cookie.trim();
+
+    if (trimmed.startsWith(encodedName)) {
+      return decodeURIComponent(trimmed.slice(encodedName.length));
+    }
+  }
+
+  return "";
+}
+
+function hasInternalTrafficCookie() {
+  return getCookieValue(internalTrafficCookieName) === "true";
+}
+
 function isMetaTrackingSuppressed() {
   if (typeof window === "undefined") {
     return false;
@@ -42,7 +66,8 @@ function isMetaTrackingSuppressed() {
   return (
     window.location.pathname.startsWith("/tickets/admin") ||
     params.get("tracking") === "off" ||
-    params.get("internal") === "1"
+    params.get("internal") === "1" ||
+    hasInternalTrafficCookie()
   );
 }
 
