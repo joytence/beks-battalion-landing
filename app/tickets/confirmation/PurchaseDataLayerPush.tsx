@@ -14,6 +14,7 @@ export type PurchaseDataLayerPayload = {
       price: number;
       quantity: number;
     }[];
+    num_items: number;
     ticket_quantity: number;
     ticket_type: string;
     transaction_id: string;
@@ -21,6 +22,7 @@ export type PurchaseDataLayerPayload = {
   };
   event: "purchase";
   event_id: string;
+  num_items: number;
   ticket_quantity: number;
   ticket_type: string;
   transaction_id: string;
@@ -41,6 +43,28 @@ declare global {
   }
 }
 
+const trackedPurchaseStoragePrefix = "joy_stage_tracked_purchase:";
+
+function getTrackedPurchaseStorageKey(transactionId: string) {
+  return `${trackedPurchaseStoragePrefix}${transactionId}`;
+}
+
+function hasStoredPurchaseTracking(transactionId: string) {
+  try {
+    return window.localStorage.getItem(getTrackedPurchaseStorageKey(transactionId)) !== null;
+  } catch {
+    return false;
+  }
+}
+
+function storePurchaseTracking(transactionId: string) {
+  try {
+    window.localStorage.setItem(getTrackedPurchaseStorageKey(transactionId), new Date().toISOString());
+  } catch {
+    // Browser storage can be unavailable in private or restricted sessions.
+  }
+}
+
 export function PurchaseDataLayerPush({
   metaAdvancedMatching,
   purchase,
@@ -49,7 +73,12 @@ export function PurchaseDataLayerPush({
     window.dataLayer = window.dataLayer || [];
     window.__joyStageTrackedPurchaseIds = window.__joyStageTrackedPurchaseIds || [];
 
-    if (window.__joyStageTrackedPurchaseIds.includes(purchase.transaction_id)) {
+    const transactionId = purchase.transaction_id;
+
+    if (
+      window.__joyStageTrackedPurchaseIds.includes(transactionId) ||
+      hasStoredPurchaseTracking(transactionId)
+    ) {
       return;
     }
 
@@ -60,7 +89,8 @@ export function PurchaseDataLayerPush({
     }
 
     window.dataLayer.push(purchase);
-    window.__joyStageTrackedPurchaseIds.push(purchase.transaction_id);
+    window.__joyStageTrackedPurchaseIds.push(transactionId);
+    storePurchaseTracking(transactionId);
   }, [metaAdvancedMatching, purchase]);
 
   return null;

@@ -274,12 +274,14 @@ export default async function TicketConfirmationPage({
     transaction_id: session.id,
     value: amountTotalValue,
     currency: normalizedCurrency,
+    num_items: quantity,
     ticket_quantity: quantity,
     ticket_type: tier.name,
     ecommerce: {
       transaction_id: session.id,
       value: amountTotalValue,
       currency: normalizedCurrency,
+      num_items: quantity,
       ticket_quantity: quantity,
       ticket_type: tier.name,
       items: [
