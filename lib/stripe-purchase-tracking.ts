@@ -111,11 +111,15 @@ export async function sendStripePurchaseMetaEvent(
         value_source: amounts.valueSource,
       },
       clientIpAddress: session.metadata?.client_ip_address || undefined,
+      clientUserAgent: session.metadata?.client_user_agent || undefined,
       email: session.customer_details?.email || session.customer_email || undefined,
       eventId: session.id,
       eventName: "Purchase",
       eventSourceUrl: `https://www.joystageproductions.com/tickets/confirmation?session_id=${encodeURIComponent(session.id)}`,
       eventTime: eventCreated,
+      externalId: session.client_reference_id || session.metadata?.order_id || session.id,
+      fbc: session.metadata?.fbc || undefined,
+      fbp: session.metadata?.fbp || undefined,
       phone: session.customer_details?.phone || undefined,
       testEventCode: session.livemode
         ? undefined

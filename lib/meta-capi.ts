@@ -13,6 +13,7 @@ export type MetaCapiEventInput = {
   eventName: string;
   eventSourceUrl: string;
   eventTime?: number;
+  externalId?: string;
   fbc?: string;
   fbp?: string;
   phone?: string;
@@ -100,6 +101,19 @@ export function getMetaTrackingContext(request: Request) {
   };
 }
 
+export function toStripeMetaTrackingMetadata(
+  context: ReturnType<typeof getMetaTrackingContext>,
+) {
+  return {
+    ...(context.clientIpAddress ? { client_ip_address: context.clientIpAddress.slice(0, 500) } : {}),
+    ...(context.clientUserAgent
+      ? { client_user_agent: context.clientUserAgent.slice(0, 500) }
+      : {}),
+    ...(context.fbc ? { fbc: context.fbc.slice(0, 500) } : {}),
+    ...(context.fbp ? { fbp: context.fbp.slice(0, 500) } : {}),
+  };
+}
+
 export async function sendMetaCapiEvent(
   input: MetaCapiEventInput,
 ): Promise<MetaCapiEventResult> {
@@ -127,6 +141,7 @@ export async function sendMetaCapiEvent(
           ...(input.clientIpAddress ? { client_ip_address: input.clientIpAddress } : {}),
           ...(input.clientUserAgent ? { client_user_agent: input.clientUserAgent } : {}),
           ...(input.email ? { em: [sha256(input.email.trim().toLowerCase())] } : {}),
+          ...(input.externalId ? { external_id: [sha256(input.externalId.trim())] } : {}),
           ...(input.fbc ? { fbc: input.fbc } : {}),
           ...(input.fbp ? { fbp: input.fbp } : {}),
           ...(input.phone ? { ph: [sha256(normalizePhone(input.phone))] } : {}),

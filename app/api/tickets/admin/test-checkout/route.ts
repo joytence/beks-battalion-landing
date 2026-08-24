@@ -12,7 +12,7 @@ import {
   releaseReservedSeatOrder,
   TicketingStoreError,
 } from "@/lib/ticketing-store";
-import { getMetaTrackingContext } from "@/lib/meta-capi";
+import { getMetaTrackingContext, toStripeMetaTrackingMetadata } from "@/lib/meta-capi";
 import {
   eventDetails,
   getRequestOrigin,
@@ -98,6 +98,7 @@ export async function POST(request: Request) {
 
   const origin = getRequestOrigin(request);
   const metaTrackingContext = getMetaTrackingContext(request);
+  const metaTrackingMetadata = toStripeMetaTrackingMetadata(metaTrackingContext);
   const stripe = getStripe();
   const smsConsentOptIn = isChecked(payload.smsConsentOptIn);
   let reservation:
@@ -120,9 +121,7 @@ export async function POST(request: Request) {
     const metadata = {
       admin_test_checkout: "true",
       checkout_flow: "reserved_seat",
-      ...(metaTrackingContext.clientIpAddress
-        ? { client_ip_address: metaTrackingContext.clientIpAddress }
-        : {}),
+      ...metaTrackingMetadata,
       event_slug: eventDetails.slug,
       order_id: reservation.orderId,
       processing_fee_cents: "0",
