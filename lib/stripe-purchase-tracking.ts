@@ -110,6 +110,7 @@ export async function sendStripePurchaseMetaEvent(
         value: amounts.value,
         value_source: amounts.valueSource,
       },
+      clientIpAddress: session.metadata?.client_ip_address || undefined,
       email: session.customer_details?.email || session.customer_email || undefined,
       eventId: session.id,
       eventName: "Purchase",

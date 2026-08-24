@@ -13,6 +13,7 @@ import {
   getTicketTierById,
   validateRequestedTicketQuantity,
 } from "@/lib/ticketing";
+import { getMetaTrackingContext } from "@/lib/meta-capi";
 
 type TierCheckoutPayload = {
   quantity?: unknown;
@@ -69,6 +70,7 @@ export async function POST(request: Request) {
   const ticketSubtotalCents = tier.priceCents * quantity;
   const processingFeeCents = calculateTicketProcessingFeeCents(ticketSubtotalCents);
   const origin = getRequestOrigin(request);
+  const metaTrackingContext = getMetaTrackingContext(request);
   const stripe = getStripe();
   const ticketTaxConfig = await getStripeTicketTaxConfig();
 
@@ -109,6 +111,9 @@ export async function POST(request: Request) {
       ],
       metadata: {
         checkout_flow: "tier_test",
+        ...(metaTrackingContext.clientIpAddress
+          ? { client_ip_address: metaTrackingContext.clientIpAddress }
+          : {}),
         event_slug: eventDetails.slug,
         processing_fee_cents: String(processingFeeCents),
         seat_assignment: "unassigned",
@@ -130,6 +135,9 @@ export async function POST(request: Request) {
       payment_intent_data: {
         metadata: {
           checkout_flow: "tier_test",
+          ...(metaTrackingContext.clientIpAddress
+            ? { client_ip_address: metaTrackingContext.clientIpAddress }
+            : {}),
           event_slug: eventDetails.slug,
           processing_fee_cents: String(processingFeeCents),
           seat_assignment: "unassigned",

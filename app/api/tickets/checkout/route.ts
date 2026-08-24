@@ -18,6 +18,7 @@ import {
   getRequestOrigin,
   getTicketTierById,
 } from "@/lib/ticketing";
+import { getMetaTrackingContext } from "@/lib/meta-capi";
 
 type CheckoutPayload = {
   seatLabels?: unknown;
@@ -68,6 +69,7 @@ export async function POST(request: Request) {
     ? payload.seatLabels.filter((seat): seat is string => typeof seat === "string")
     : [];
   const origin = getRequestOrigin(request);
+  const metaTrackingContext = getMetaTrackingContext(request);
   const stripe = getStripe();
   const ticketTaxConfig = await getStripeTicketTaxConfig();
   let reservation:
@@ -127,6 +129,9 @@ export async function POST(request: Request) {
       ],
       metadata: {
         checkout_flow: "reserved_seat",
+        ...(metaTrackingContext.clientIpAddress
+          ? { client_ip_address: metaTrackingContext.clientIpAddress }
+          : {}),
         event_slug: eventDetails.slug,
         order_id: reservation.orderId,
         processing_fee_cents: String(processingFeeCents),
@@ -149,6 +154,9 @@ export async function POST(request: Request) {
       payment_intent_data: {
         metadata: {
           checkout_flow: "reserved_seat",
+          ...(metaTrackingContext.clientIpAddress
+            ? { client_ip_address: metaTrackingContext.clientIpAddress }
+            : {}),
           event_slug: eventDetails.slug,
           order_id: reservation.orderId,
           processing_fee_cents: String(processingFeeCents),
