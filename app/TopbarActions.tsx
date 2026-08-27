@@ -5,15 +5,16 @@ import { useEffect, useState } from "react";
 type TopbarAction = {
   href: string;
   label: string;
-  tone: "ghost" | "hot";
+  tone: "ghost" | "hot" | "gold";
 };
 
 export function TopbarActions({ items }: { items: readonly TopbarAction[] }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const ticketAction =
-    items.find((item) => item.href === "#tickets") ??
+    items.find((item) => item.href === "#tickets" || item.href.endsWith("#tickets")) ??
     items.find((item) => item.label.toLowerCase().includes("ticket")) ??
+    items.find((item) => item.label.toLowerCase().includes("spot")) ??
     items[0];
   const mobileMenuItems = items.filter((item) => item.href !== ticketAction.href);
 

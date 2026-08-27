@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type HeroFace = {
   name: string;
@@ -30,6 +30,8 @@ function getCarouselOffset(index: number, activeIndex: number, length: number) {
 export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const pointerStartX = useRef<number | null>(null);
+  const resumeTimerId = useRef<number | null>(null);
 
   function goNext() {
     setActiveIndex((current) => (current + 1) % items.length);
@@ -37,6 +39,19 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
 
   function goPrev() {
     setActiveIndex((current) => (current - 1 + items.length) % items.length);
+  }
+
+  function pauseBriefly() {
+    setIsAutoPlaying(false);
+
+    if (resumeTimerId.current !== null) {
+      window.clearTimeout(resumeTimerId.current);
+    }
+
+    resumeTimerId.current = window.setTimeout(() => {
+      setIsAutoPlaying(true);
+      resumeTimerId.current = null;
+    }, 2000);
   }
 
   useEffect(() => {
@@ -51,6 +66,14 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
     return () => window.clearInterval(intervalId);
   }, [isAutoPlaying, items.length]);
 
+  useEffect(() => {
+    return () => {
+      if (resumeTimerId.current !== null) {
+        window.clearTimeout(resumeTimerId.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="hero-carousel" aria-label="Featured artists">
       <div
@@ -58,16 +81,42 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
         role="region"
         aria-live="polite"
         tabIndex={0}
+        onPointerDown={(event) => {
+          pointerStartX.current = event.clientX;
+        }}
+        onPointerUp={(event) => {
+          if (pointerStartX.current === null) {
+            return;
+          }
+
+          const swipeDistance = event.clientX - pointerStartX.current;
+          pointerStartX.current = null;
+
+          if (Math.abs(swipeDistance) < 36) {
+            return;
+          }
+
+          pauseBriefly();
+
+          if (swipeDistance > 0) {
+            goPrev();
+          } else {
+            goNext();
+          }
+        }}
+        onPointerCancel={() => {
+          pointerStartX.current = null;
+        }}
         onKeyDown={(event) => {
           if (event.key === "ArrowLeft") {
             event.preventDefault();
-            setIsAutoPlaying(false);
+            pauseBriefly();
             goPrev();
           }
 
           if (event.key === "ArrowRight") {
             event.preventDefault();
-            setIsAutoPlaying(false);
+            pauseBriefly();
             goNext();
           }
 
@@ -111,42 +160,6 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
         })}
       </div>
 
-      <div className="hero-carousel__controls" aria-label="Carousel controls">
-        <button
-          type="button"
-          className="hero-carousel__control"
-          onClick={() => {
-            setIsAutoPlaying(false);
-            goPrev();
-          }}
-          aria-label="Show previous artist"
-        >
-          Prev
-        </button>
-
-        <button
-          type="button"
-          className="hero-carousel__control hero-carousel__control--accent"
-          onClick={() => setIsAutoPlaying((playing) => !playing)}
-          aria-label={isAutoPlaying ? "Pause carousel autoplay" : "Resume carousel autoplay"}
-          aria-pressed={!isAutoPlaying}
-        >
-          {isAutoPlaying ? "Pause" : "Play"}
-        </button>
-
-        <button
-          type="button"
-          className="hero-carousel__control"
-          onClick={() => {
-            setIsAutoPlaying(false);
-            goNext();
-          }}
-          aria-label="Show next artist"
-        >
-          Next
-        </button>
-      </div>
-
       <div className="hero-carousel__dots" aria-label="Select featured artist">
         {items.map((artist, index) => (
           <button
@@ -155,7 +168,7 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
             className="hero-carousel__dot"
             data-active={index === activeIndex}
             onClick={() => {
-              setIsAutoPlaying(false);
+              pauseBriefly();
               setActiveIndex(index);
             }}
             aria-label={`Show ${artist.name}`}

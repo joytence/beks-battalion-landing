@@ -174,8 +174,8 @@
 }
 
 .consentBox {
-  margin-top: 22px;
-  padding: 20px 22px;
+  margin-top: 0;
+  padding: 18px 20px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 207, 90, 0.22);
@@ -191,7 +191,7 @@
 .consentTitle {
   margin: 0;
   font-family: var(--font-bebas-neue), sans-serif;
-  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  font-size: clamp(1.55rem, 3.4vw, 2.1rem);
   line-height: 0.98;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -213,7 +213,7 @@
 
 .consentCopy {
   color: rgba(245, 241, 232, 0.88);
-  line-height: 1.7;
+  line-height: 1.6;
 }
 
 .consentCopy a,
@@ -247,7 +247,7 @@
 }
 
 .sectionTitle {
-  max-width: 14ch;
+  max-width: 20ch;
   font-size: clamp(2.6rem, 7vw, 4rem);
   letter-spacing: 0.06em;
 }
@@ -266,6 +266,151 @@
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 18px;
   align-items: stretch;
+}
+
+.ticketTrustRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.ticketTrustRow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 207, 90, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 207, 90, 0.08);
+  color: rgba(245, 241, 232, 0.88);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ticketTrustStripeLogo {
+  width: 30px;
+  height: 18px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.ticketTrustIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(255, 207, 90, 0.2);
+  color: rgb(255, 207, 90);
+  flex: 0 0 auto;
+}
+
+.ticketTrustIcon svg {
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+}
+
+.ticketTrustIcon path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ticketTrustPdfIcon {
+  background: #ed1c24;
+  color: #fff;
+}
+
+.ticketTrustPdfIcon path:first-child {
+  fill: currentColor;
+  stroke: currentColor;
+}
+
+.ticketTrustPdfIcon path:nth-child(2) {
+  fill: none;
+  stroke: rgba(237, 28, 36, 0.8);
+}
+
+.ticketTrustPdfIcon text {
+  fill: #ed1c24;
+  font-family: Arial, sans-serif;
+  font-size: 6px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.ticketCompare {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid rgba(255, 207, 90, 0.22);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 207, 90, 0.08), transparent 34%),
+    rgba(255, 255, 255, 0.03);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.24);
+}
+
+.ticketCompareEyebrow {
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.28em;
+  text-align: center;
+  text-transform: uppercase;
+  color: rgb(255, 207, 90);
+}
+
+.ticketCompareTableWrap {
+  overflow-x: auto;
+}
+
+.ticketCompareTable {
+  width: 100%;
+  min-width: 520px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.ticketCompareTable th,
+.ticketCompareTable td {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 13px 12px;
+}
+
+.ticketCompareTable thead th {
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(245, 241, 232, 0.86);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.ticketCompareTable th:first-child {
+  width: 44%;
+  text-align: left;
+}
+
+.ticketCompareTable tbody th {
+  color: rgba(245, 241, 232, 0.92);
+  font-weight: 900;
+}
+
+.ticketCompareTable td {
+  text-align: center;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 0.1em;
+  color: rgb(255, 207, 90);
 }
 
 .tierCard {
@@ -1398,6 +1543,26 @@
   align-items: stretch;
 }
 
+.orderPanelAside .consentBox {
+  padding: 14px 16px;
+  border-radius: 16px;
+  gap: 10px;
+}
+
+.orderPanelAside .consentHeader {
+  gap: 4px;
+}
+
+.orderPanelAside .consentTitle {
+  font-size: 1.45rem;
+}
+
+.orderPanelAside .consentCopy,
+.orderPanelAside .consentHint {
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
 .primaryButton:active,
 .secondaryButton:active {
   transform: translateY(1px);
@@ -1588,6 +1753,19 @@
   .ticketMeta,
   .scanMeta {
     grid-template-columns: 1fr;
+  }
+
+  .ticketCompare {
+    padding: 16px;
+  }
+
+  .ticketCompareTable {
+    min-width: 420px;
+  }
+
+  .ticketCompareTable th,
+  .ticketCompareTable td {
+    padding: 11px 9px;
   }
 
   .orderPanel,

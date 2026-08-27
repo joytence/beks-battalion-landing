@@ -49,7 +49,6 @@ type TicketCheckoutClientProps = {
   configured: boolean;
   databaseConfigured: boolean;
   initialTierId: string;
-  processingFeeLabel: string;
   seatChart: SeatChart;
   seatMapOnly: boolean;
   stripeTestMode: boolean;
@@ -66,6 +65,13 @@ const defaultTierQuantities = {
   svip: 1,
   vip: 1,
 } as const;
+
+const ticketComparisonRows = [
+  { feature: "Best Seats", svip: true, vip: true, ga: false },
+  { feature: "Meet & Greet", svip: true, vip: false, ga: false },
+  { feature: "Photo Opportunity", svip: true, vip: false, ga: false },
+  { feature: "Reserved Seating", svip: true, vip: true, ga: true },
+] as const;
 
 function getSeatTierName(tiers: readonly TicketTier[], tierId: string) {
   return tiers.find((tier) => tier.id === tierId)?.name || "Ticket";
@@ -118,7 +124,6 @@ export function TicketCheckoutClient({
   configured,
   databaseConfigured,
   initialTierId,
-  processingFeeLabel,
   seatChart,
   seatMapOnly,
   stripeTestMode,
@@ -275,12 +280,12 @@ export function TicketCheckoutClient({
 
   async function handleCheckout() {
     if (!checkoutEnabled) {
-      setError("Ticket payments are temporarily paused while Stripe is being finalized.");
+      setError("Checkout is unavailable right now. Please try again shortly.");
       return;
     }
 
     if (!databaseConfigured) {
-      setError("Reserved-seat checkout requires DATABASE_URL before live payments can be enabled.");
+      setError("Seat checkout is unavailable right now. Please try again shortly.");
       return;
     }
 
@@ -321,17 +326,17 @@ export function TicketCheckoutClient({
 
   async function handleTierCheckout(tierId: string) {
     if (!tierTestCheckoutEnabled) {
-      setError("Tier test checkout is not enabled yet.");
+      setError("Checkout is unavailable right now. Please choose seats first.");
       return;
     }
 
     if (!configured) {
-      setError("Stripe is not configured yet. Add a Stripe test secret key first.");
+      setError("Checkout is unavailable right now. Please try again shortly.");
       return;
     }
 
     if (!stripeTestMode) {
-      setError("Tier test checkout requires a Stripe test secret key.");
+      setError("Checkout is unavailable right now. Please choose seats first.");
       return;
     }
 
@@ -366,6 +371,32 @@ export function TicketCheckoutClient({
     }
   }
 
+  const smsConsentPanel = (
+    <div className={styles.consentBox}>
+      <div className={styles.consentHeader}>
+        <div className={styles.sectionEyebrow}>Optional Text Updates</div>
+        <h3 className={styles.consentTitle}>Want your ticket link by text?</h3>
+      </div>
+      <label className={styles.consentLabelRow}>
+        <input
+          checked={smsConsentOptIn}
+          className={styles.consentCheckbox}
+          type="checkbox"
+          onChange={(event) => setSmsConsentOptIn(event.currentTarget.checked)}
+        />
+        <span className={styles.consentCopy}>
+          Text me my ticket link and event updates. Message and data rates may apply. Reply STOP to
+          opt out or HELP for help. Consent is not required to buy tickets. See our{" "}
+          <a href="/privacy">Privacy Policy</a> and{" "}
+          <a href="/terms">Terms and Conditions</a>.
+        </span>
+      </label>
+      <p className={styles.consentHint}>
+        Leave this unchecked if you prefer email-only ticket delivery.
+      </p>
+    </div>
+  );
+
   return (
     <div className={styles.checkoutShell}>
       <div className={styles.checkoutStack}>
@@ -377,43 +408,77 @@ export function TicketCheckoutClient({
 
         {error ? <div className={styles.error}>{error}</div> : null}
 
-        <div className={styles.notice}>
-          A separate {processingFeeLabel} processing fee applies to paid orders. The fee is shown
-          before payment and itemized as its own line item in Stripe Checkout.
-        </div>
-
-        <div className={styles.consentBox}>
-          <div className={styles.consentHeader}>
-            <div className={styles.sectionEyebrow}>Optional SMS Consent</div>
-            <h3 className={styles.consentTitle}>Ticket Text Messages Are Optional</h3>
-          </div>
-          <label className={styles.consentLabelRow}>
-            <input
-              checked={smsConsentOptIn}
-              className={styles.consentCheckbox}
-              type="checkbox"
-              onChange={(event) => setSmsConsentOptIn(event.currentTarget.checked)}
-            />
-            <span className={styles.consentCopy}>
-              By checking this box and providing your mobile number during Stripe Checkout, you
-              agree to receive low-volume ticket-related text messages from Joy Stage Productions.
-              These may include ticket confirmations, secure ticket links, resend requests, and
-              order support updates. Message frequency varies. Message and data rates may apply.
-              Reply STOP to opt out and HELP for help. Consent is not a condition of purchase. See
-              our <a href="/privacy">Privacy Policy</a> and <a href="/terms">Terms and Conditions</a>.
-            </span>
-          </label>
-          <p className={styles.consentHint}>
-            Leave this box unchecked if you prefer email-only ticket delivery and support updates.
-          </p>
-        </div>
-
         {seatMapOnly ? (
-          <div className={styles.mapPageHeader}>
-            <a className={`${styles.secondaryButton} ${styles.backActionButton}`} href="/tickets">
-              Back To Electronic Ticket Page
-            </a>
-          </div>
+          <>
+            <div className={styles.mapPageHeader}>
+              <a className={`${styles.secondaryButton} ${styles.backActionButton}`} href="/tickets">
+                Back To Electronic Ticket Page
+              </a>
+            </div>
+          </>
+        ) : null}
+
+        {!seatMapOnly ? (
+          <>
+            <aside className={styles.ticketCompare} aria-label="Ticket tier comparison">
+              <div className={styles.ticketCompareEyebrow}>Compare At A Glance</div>
+              <div className={styles.ticketCompareTableWrap}>
+                <table className={styles.ticketCompareTable}>
+                  <thead>
+                    <tr>
+                      <th>Feature</th>
+                      <th>SVIP</th>
+                      <th>VIP</th>
+                      <th>GA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ticketComparisonRows.map((row) => (
+                      <tr key={row.feature}>
+                        <th scope="row">{row.feature}</th>
+                        <td>{row.svip ? "Yes" : ""}</td>
+                        <td>{row.vip ? "Yes" : ""}</td>
+                        <td>{row.ga ? "Yes" : ""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </aside>
+            <div className={styles.ticketTrustRow} aria-label="Ticket purchase trust details">
+              <span>
+                <img
+                  className={styles.ticketTrustStripeLogo}
+                  src="/assets/stripe-logo.jpg"
+                  alt=""
+                  aria-hidden="true"
+                />
+                Secure Stripe checkout
+              </span>
+              <span>
+                <span className={`${styles.ticketTrustIcon} ${styles.ticketTrustPdfIcon}`} aria-hidden="true">
+                  <svg viewBox="0 0 28 28" focusable="false">
+                    <path d="M7 3h9l5 5v17H7z" />
+                    <path d="M16 3v6h5" />
+                    <text x="14" y="19" textAnchor="middle">
+                      PDF
+                    </text>
+                  </svg>
+                </span>
+                Instant e-ticket delivery
+              </span>
+              <span>
+                <span className={styles.ticketTrustIcon} aria-hidden="true">
+                  <svg viewBox="0 0 28 28" focusable="false">
+                    <path d="M8 6c0-1.7 1.3-3 3-3h6c1.7 0 3 1.3 3 3v8H8z" />
+                    <path d="M6 13h16v5c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2z" />
+                    <path d="M9 20v4M19 20v4" />
+                  </svg>
+                </span>
+                Reserved seating
+              </span>
+            </div>
+          </>
         ) : null}
 
         {!seatMapOnly ? (
@@ -440,7 +505,7 @@ export function TicketCheckoutClient({
                   {tierTestReady ? (
                     <>
                       <div className={styles.tierQuantityRow}>
-                        <span className={styles.tierQuantityLabel}>Test Quantity</span>
+                        <span className={styles.tierQuantityLabel}>Quantity</span>
                         <div className={styles.tierQuantityControl}>
                           <button
                             className={styles.tierQuantityButton}
@@ -461,7 +526,7 @@ export function TicketCheckoutClient({
                             onChange={(event) =>
                               handleTierQuantityChange(tier.id, Number(event.currentTarget.value))
                             }
-                            aria-label={`${tier.name} test quantity`}
+                            aria-label={`${tier.name} quantity`}
                           />
                           <button
                             className={styles.tierQuantityButton}
@@ -484,13 +549,9 @@ export function TicketCheckoutClient({
                         disabled={!tierTestReady || Boolean(submittingTierId)}
                       >
                         {submittingTierId === tier.id
-                          ? "Opening Stripe Test Checkout..."
-                          : "Start Test Checkout"}
+                          ? "Opening Secure Checkout..."
+                          : "Start Checkout"}
                       </button>
-
-                      <div className={styles.feeDisclosure}>
-                        {processingFeeLabel} processing fee disclosed before payment
-                      </div>
 
                       <a
                         className={`${styles.secondaryButton} ${styles.tierCardAction}`}
@@ -505,14 +566,8 @@ export function TicketCheckoutClient({
                         className={`${styles.primaryButton} ${styles.tierCardCheckoutButton}`}
                         href={`/tickets?view=seats&tier=${tier.id}#seat-map`}
                       >
-                        {reservedSeatReady ? `Buy ${tier.name} Seats` : `View ${tier.name} Seats`}
+                        {reservedSeatReady ? `Buy ${tier.name} Seats` : `Choose ${tier.name} Seats`}
                       </a>
-
-                      <div className={styles.feeDisclosure}>
-                        {reservedSeatReady
-                          ? `${processingFeeLabel} processing fee disclosed before payment`
-                          : "Seat map preview available before payment"}
-                      </div>
                     </>
                   )}
                 </div>
@@ -667,6 +722,8 @@ export function TicketCheckoutClient({
                 </div>
               </div>
 
+              {smsConsentPanel}
+
               {checkoutEnabled ? (
                 <button
                   className={styles.primaryButton}
@@ -677,22 +734,19 @@ export function TicketCheckoutClient({
                   {submitting ? "Redirecting To Secure Payment..." : "Continue To Secure Payment"}
                 </button>
               ) : (
-                <div className={styles.paymentStatusBox}>
-                  <span className={styles.paymentStatusLabel}>Payments Paused</span>
-                  <p className={styles.paymentStatusCopy}>
-                    Stripe checkout is offline for now while the live payment flow is being set up.
-                  </p>
-                </div>
+                <button className={styles.primaryButton} type="button" disabled>
+                  Continue To Secure Payment
+                </button>
               )}
             </aside>
           </div>
         ) : (
           <section id="seat-map" className={styles.seatMapClosedCard}>
             <div className={styles.sectionEyebrow}>Seat Map</div>
-            <h3 className={styles.seatMapClosedTitle}>Choose a ticket tier to open the venue view</h3>
+            <h3 className={styles.seatMapClosedTitle}>Step 2: Pick Your Seats</h3>
             <p className={styles.seatMapClosedNote}>
-              The bird&apos;s-eye seating chart stays hidden until you open the SVIP, VIP, or General
-              Admission seat view above.
+              Choose a ticket section above to open the bird's-eye venue map and pick your exact
+              reserved seats.
             </p>
           </section>
         )}

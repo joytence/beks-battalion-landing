@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Bebas_Neue, Space_Grotesk } from "next/font/google";
+import { Bebas_Neue, Monoton, Space_Grotesk } from "next/font/google";
 import Script from "next/script";
 import { CookieConsent } from "./CookieConsent";
 import "./globals.css";
@@ -17,6 +17,12 @@ const bebasNeue = Bebas_Neue({
   weight: "400",
   subsets: ["latin"],
   variable: "--font-bebas-neue",
+});
+
+const monoton = Monoton({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-monoton",
 });
 
 export const metadata: Metadata = {
@@ -61,7 +67,7 @@ export default function RootLayout({
           {`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${googleTagManagerId}');`}
         </Script>
       </head>
-      <body className={`${spaceGrotesk.variable} ${bebasNeue.variable}`}>
+      <body className={`${spaceGrotesk.variable} ${bebasNeue.variable} ${monoton.variable}`}>
         <noscript>
           <iframe
             src={`https://www.googletagmanager.com/ns.html?id=${googleTagManagerId}`}
