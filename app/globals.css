@@ -354,14 +354,15 @@ a {
 .marquee__track {
   display: flex;
   width: max-content;
-  animation: marquee 26s linear infinite;
+  animation: marquee 38s linear infinite;
 }
 
 .marquee__row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 18px;
-  padding: 16px 0;
+  padding: 16px 50vw;
   white-space: nowrap;
   font-family: var(--font-bebas-neue), sans-serif;
   font-size: clamp(2.27rem, 3.53vw, 3.19rem);
@@ -3036,7 +3037,7 @@ a {
   .marquee__row {
     font-size: 1.98rem;
     letter-spacing: 0.14em;
-    padding: 14px 0;
+    padding: 14px 36vw;
   }
 
   .section-title {

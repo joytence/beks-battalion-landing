@@ -97,8 +97,6 @@ export default async function Page() {
           <div className="hero__copy">
             <h1 className="hero__title">
               <span className="hero__title-hook">One Night of Laughs, Music, and Energy</span>
-              <span className="hero__title-primary">Beks Battalion</span>
-              <span className="hero__title-secondary">The Laff Control Project</span>
             </h1>
           </div>
 
