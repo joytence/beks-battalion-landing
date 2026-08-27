@@ -65,7 +65,7 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
 
   return (
     <main className={styles.page}>
-      <section className={styles.heroCard}>
+      <section className={styles.sectionCard}>
         <div className={styles.heroActionRow}>
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/">
             Back to Event Page
@@ -79,17 +79,8 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
           Choose Your Seats
         </h1>
         <p className={styles.lead}>
-          Select SVIP, VIP, or General Admission, then pick your reserved seats and checkout securely
-          with Stripe.
+          Select SVIP, VIP, or General Admission, then pick your exact seats on the reserved seat map.
         </p>
-
-      </section>
-
-      <section className={styles.sectionCard}>
-        <div className={styles.sectionHeader}>
-          <div className={styles.sectionEyebrow}>Step 1</div>
-          <h2 className={styles.sectionTitle}>Choose Your Ticket Section</h2>
-        </div>
 
         <TicketCheckoutClient
           canceled={canceled}
