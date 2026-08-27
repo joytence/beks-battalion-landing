@@ -1184,9 +1184,11 @@ a {
   gap: 14px;
   align-content: start;
   justify-items: center;
-  max-width: 840px;
+  width: 100%;
+  max-width: none;
   margin: 0;
   padding: 0;
+  text-align: center;
   text-shadow: 0 3px 18px rgba(0, 0, 0, 0.78);
 }
 
@@ -1858,6 +1860,7 @@ a {
 }
 
 .hero__title {
+  width: 100%;
   margin: 0 auto;
   font-family: var(--font-bebas-neue), sans-serif;
   font-size: clamp(4.8rem, 7vw, 6.7rem);
@@ -1877,6 +1880,7 @@ a {
 
 .hero__title-hook {
   display: block;
+  width: 100%;
   margin: 0 0 0.12em;
   font-family: var(--font-bebas-neue), sans-serif;
   font-size: clamp(2.15rem, 4.1vw, 4.45rem);
