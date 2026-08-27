@@ -66,6 +66,13 @@ const defaultTierQuantities = {
   vip: 1,
 } as const;
 
+const ticketComparisonRows = [
+  { feature: "Best Seats", svip: true, vip: true, ga: false },
+  { feature: "Meet & Greet", svip: true, vip: false, ga: false },
+  { feature: "Photo Opportunity", svip: true, vip: false, ga: false },
+  { feature: "Reserved Seating", svip: true, vip: true, ga: true },
+] as const;
+
 function getSeatTierName(tiers: readonly TicketTier[], tierId: string) {
   return tiers.find((tier) => tier.id === tierId)?.name || "Ticket";
 }
@@ -413,6 +420,31 @@ export function TicketCheckoutClient({
 
         {!seatMapOnly ? (
           <>
+            <aside className={styles.ticketCompare} aria-label="Ticket tier comparison">
+              <div className={styles.ticketCompareEyebrow}>Compare At A Glance</div>
+              <div className={styles.ticketCompareTableWrap}>
+                <table className={styles.ticketCompareTable}>
+                  <thead>
+                    <tr>
+                      <th>Feature</th>
+                      <th>SVIP</th>
+                      <th>VIP</th>
+                      <th>GA</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ticketComparisonRows.map((row) => (
+                      <tr key={row.feature}>
+                        <th scope="row">{row.feature}</th>
+                        <td>{row.svip ? "Yes" : ""}</td>
+                        <td>{row.vip ? "Yes" : ""}</td>
+                        <td>{row.ga ? "Yes" : ""}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </aside>
             <div className={styles.ticketTrustRow} aria-label="Ticket purchase trust details">
               <span>
                 <img
