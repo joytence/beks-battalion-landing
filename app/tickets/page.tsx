@@ -9,9 +9,7 @@ import {
 } from "@/lib/stripe";
 import { getUnavailableSeatLabels, isTicketingDatabaseConfigured } from "@/lib/ticketing-store";
 import {
-  eventDetails,
   formatCurrency,
-  formatEventDate,
   getTicketTierById,
   getTicketSeatChart,
   ticketTiers,
@@ -84,21 +82,6 @@ export default async function TicketsPage({ searchParams }: TicketsPageProps) {
           Select SVIP, VIP, or General Admission, then pick your reserved seats and checkout securely
           with Stripe.
         </p>
-
-        <div className={styles.eventSummary}>
-          <div>
-            <span className={styles.summaryLabel}>Event</span>
-            <strong>{eventDetails.name}</strong>
-          </div>
-          <div>
-            <span className={styles.summaryLabel}>Date</span>
-            <strong>{formatEventDate(eventDetails.dateIso)}</strong>
-          </div>
-          <div>
-            <span className={styles.summaryLabel}>Venue</span>
-            <strong>{eventDetails.venue}</strong>
-          </div>
-        </div>
 
       </section>
 
