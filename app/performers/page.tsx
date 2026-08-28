@@ -1,8 +1,10 @@
 import { HeroCarousel } from "../HeroCarousel";
+import { HeroCountdown } from "../HeroCountdown";
 import { SiteFooter } from "../SiteFooter";
 import { SponsorLogoFooter } from "../SponsorLogoFooter";
 import { TopbarActions } from "../TopbarActions";
 import { specialPerformers } from "@/lib/performers";
+import { eventDetails } from "@/lib/ticketing";
 
 const performerNav = [
   { href: "/", label: "Back Home", tone: "ghost" },
@@ -24,6 +26,8 @@ export default function PerformersPage() {
               <div className="brand__subtitle">We plan. We produce. You shine.</div>
             </div>
           </a>
+
+          <HeroCountdown targetIso={eventDetails.dateIso} />
 
           <TopbarActions items={performerNav} />
         </div>

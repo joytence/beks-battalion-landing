@@ -1,8 +1,10 @@
 import { InquiryAction } from "../InquiryAction";
+import { HeroCountdown } from "../HeroCountdown";
 import { SiteFooter } from "../SiteFooter";
 import { SponsorLogoFooter } from "../SponsorLogoFooter";
 import { TopbarActions } from "../TopbarActions";
 import { sponsorPackages } from "@/lib/sponsors";
+import { eventDetails } from "@/lib/ticketing";
 
 const sponsorNav = [
   { href: "/", label: "Back Home", tone: "gold" },
@@ -24,6 +26,8 @@ export default function SponsorsPage() {
               <div className="brand__subtitle">We plan. We produce. You shine.</div>
             </div>
           </a>
+
+          <HeroCountdown targetIso={eventDetails.dateIso} />
 
           <TopbarActions items={sponsorNav} />
         </div>

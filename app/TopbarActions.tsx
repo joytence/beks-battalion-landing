@@ -20,7 +20,7 @@ export function TopbarActions({ items }: { items: readonly TopbarAction[] }) {
 
   useEffect(() => {
     function handleResize() {
-      if (window.innerWidth > 700) {
+      if (window.innerWidth > 1024) {
         setIsMenuOpen(false);
       }
     }

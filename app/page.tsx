@@ -1,9 +1,11 @@
 import { HeroCarousel } from "./HeroCarousel";
 import { HeroCountdown } from "./HeroCountdown";
 import { SiteFooter } from "./SiteFooter";
+import { SocialProofVideo } from "./SocialProofVideo";
 import { SponsorLogoFooter } from "./SponsorLogoFooter";
 import { TopbarActions } from "./TopbarActions";
 import { heroFaces } from "@/lib/performers";
+import { socialProofVideo, soldOutShowMoments, videoLibraryItems } from "@/lib/social-proof";
 import { getUnavailableSeatLabels, isTicketingDatabaseConfigured } from "@/lib/ticketing-store";
 import { eventDetails, getTicketSeatChart } from "@/lib/ticketing";
 
@@ -32,6 +34,31 @@ function SectionTag({ children }: { children: string }) {
   );
 }
 
+function EventMarquee() {
+  return (
+    <div className="marquee hero__marquee" aria-label="Event marquee">
+      <div className="marquee__track">
+        <div className="marquee__row">
+          {marqueeItems.map((item) => (
+            <span key={item} className="marquee__item">
+              <span>{item}</span>
+              <span className="marquee__dot" />
+            </span>
+          ))}
+        </div>
+        <div className="marquee__row" aria-hidden="true">
+          {marqueeItems.map((item) => (
+            <span key={`${item}-repeat`} className="marquee__item">
+              <span>{item}</span>
+              <span className="marquee__dot" />
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default async function Page() {
   const unavailableSeatLabels = isTicketingDatabaseConfigured()
     ? await getUnavailableSeatLabels()
@@ -56,28 +83,9 @@ export default async function Page() {
             </div>
           </a>
 
-          <TopbarActions items={topbarCtas} />
-        </div>
+          <HeroCountdown targetIso={eventDetails.dateIso} />
 
-        <div className="marquee" aria-label="Event marquee">
-          <div className="marquee__track">
-            <div className="marquee__row">
-              {marqueeItems.map((item) => (
-                <span key={item} className="marquee__item">
-                  <span>{item}</span>
-                  <span className="marquee__dot" />
-                </span>
-              ))}
-            </div>
-            <div className="marquee__row" aria-hidden="true">
-              {marqueeItems.map((item) => (
-                <span key={`${item}-repeat`} className="marquee__item">
-                  <span>{item}</span>
-                  <span className="marquee__dot" />
-                </span>
-              ))}
-            </div>
-          </div>
+          <TopbarActions items={topbarCtas} />
         </div>
       </header>
 
@@ -94,56 +102,96 @@ export default async function Page() {
         </video>
 
         <div className="page__inner hero">
-          <div className="hero__copy">
-            <h1 className="hero__title">
-              <span className="hero__title-hook">One Night of Laughs, Music, and Energy</span>
-            </h1>
-          </div>
-
-          <HeroCountdown targetIso={eventDetails.dateIso} title="Until The Show" />
-
           <div className="hero__eventline">
-            <div className="hero__eventline-script">Live!</div>
+            <div className="hero__eventline-script">LIVE!</div>
             <div className="hero__eventline-title">IN SAN DIEGO</div>
             <div className="hero__eventline-date">SEP 13, 2026 | 5PM to 9PM</div>
             <div className="hero__eventline-venue">@ Otay Ranch High School, Chula Vista.</div>
           </div>
 
           <div className="hero__visual">
-            <img
-              className="hero__logo-overlay"
-              src="/assets/joy-stage-logo-gold.png"
-              alt="Joy Stage Productions LLC"
-            />
             <HeroCarousel items={heroFaces} />
-      <div className="hero__cta-stack" id="tickets">
-        <div className="tickets-cta-card tickets-cta-card--hero">
-          <h2>Don&apos;t miss a night of laughs.</h2>
-          <div className="tickets-cta-card__counter" aria-label={`Only ${svipAvailableCount} SVIP tickets left`}>
-            <span className="tickets-cta-card__counter-kicker">SVIP Tickets Almost Sold Out</span>
-            <strong>{svipAvailableCount}</strong>
-            <span>left</span>
-          </div>
+            <div className="hero__cta-stack" id="tickets">
+              <div className="tickets-cta-card tickets-cta-card--hero">
+                <h2>Don&apos;t miss a night of laughs.</h2>
+                <div
+                  className="tickets-cta-card__counter"
+                  aria-label={`Only ${svipAvailableCount} SVIP tickets left`}
+                >
+                  <span className="tickets-cta-card__counter-kicker">
+                    SVIP Tickets Almost Sold Out
+                  </span>
+                  <strong>{svipAvailableCount}</strong>
+                  <span>left</span>
+                </div>
                 <p>
-                  Beks Battalion is coming to San Diego for one night only. Pick your seats before your
-                  preferred section sells out.
+                  Beks Battalion is coming to San Diego for one night only. Pick your seats before
+                  your preferred section sells out.
                 </p>
-                <a className="cta cta--hot tickets-cta-card__button" href="/tickets">Buy Your Tickets Now!</a>
-        <p className="tickets-cta-card__note tickets-cta-card__note--price">Tickets start from $100</p>
-      </div>
+                <a className="cta cta--hot tickets-cta-card__button" href="/tickets">
+                  Buy Your Tickets Now!
+                </a>
+                <p className="tickets-cta-card__note tickets-cta-card__note--price">
+                  Tickets start from $100
+                </p>
+              </div>
+            </div>
 
-      <p className="hero__opening-copy">
-        Our main show will be opened by 6 local artist to include our very own Producer - Joy Tence
-      </p>
-      <a className="cta cta--outline-pink hero__performers-cta" href="/performers">
-        See All Opening Acts
-      </a>
-    </div>
-            <img
-              className="hero__logo-secondary"
-              src="/assets/stage-nova-production-transparent.png"
-              alt="StageNova Entertainment Production"
-            />
+            <EventMarquee />
+
+            <section
+              className="social-proof"
+              id="social-proof"
+              aria-label="Event video and sold-out show excitement"
+            >
+              <article className="social-proof-card social-proof-card--video">
+                <div className="social-proof-card__header">
+                  <span>Video Library</span>
+                  <strong>See the energy</strong>
+                </div>
+                <SocialProofVideo
+                  poster={socialProofVideo.poster}
+                  src={socialProofVideo.src}
+                  fullPageHref="/social-proof/video"
+                />
+                <div className="social-proof-video-list" aria-label="Video library draft items">
+                  {videoLibraryItems.map((item) => (
+                    <div key={item} className="social-proof-video-list__item">
+                      <span />
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </article>
+
+              <article className="social-proof-card social-proof-card--carousel">
+                <div className="social-proof-card__header">
+                  <span>Sold-Out Show Moments</span>
+                  <strong>Experience Live</strong>
+                </div>
+                <HeroCarousel
+                  items={soldOutShowMoments}
+                  ariaLabel="Sold-out show moments"
+                  dotAriaLabel="Select sold-out show moment"
+                  openOnDoubleClick={true}
+                  fullPageHref="/social-proof/gallery"
+                />
+                <p className="social-proof-card__note">
+                  Real show moments from audiences who showed up, laughed, and filled the room.
+                </p>
+                <p className="social-proof-card__hint">
+                  Double-click the active image to see the full slideshow.
+                </p>
+              </article>
+            </section>
+
+            <p className="hero__opening-copy">
+              Our main show will be opened by 6 local artist to include our very own Producer - Joy
+              Tence
+            </p>
+            <a className="cta cta--outline-pink hero__performers-cta" href="/performers">
+              See All Opening Acts
+            </a>
           </div>
         </div>
       </section>

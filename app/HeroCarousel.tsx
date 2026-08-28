@@ -27,9 +27,24 @@ function getCarouselOffset(index: number, activeIndex: number, length: number) {
   return offset;
 }
 
-export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
+export function HeroCarousel({
+  items,
+  ariaLabel = "Featured artists",
+  dotAriaLabel = "Select featured artist",
+  openOnDoubleClick = false,
+  fullPageHref,
+  lightboxAriaLabel = "Image slideshow",
+}: {
+  items: readonly HeroFace[];
+  ariaLabel?: string;
+  dotAriaLabel?: string;
+  openOnDoubleClick?: boolean;
+  fullPageHref?: string;
+  lightboxAriaLabel?: string;
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const pointerStartX = useRef<number | null>(null);
   const resumeTimerId = useRef<number | null>(null);
 
@@ -54,6 +69,35 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
     }, 2000);
   }
 
+  function openLightbox(index: number) {
+    if (!openOnDoubleClick) {
+      return;
+    }
+
+    pauseBriefly();
+
+    if (fullPageHref) {
+      window.location.href = `${fullPageHref}?slide=${index}`;
+      return;
+    }
+
+    setLightboxIndex(index);
+  }
+
+  function closeLightbox() {
+    setLightboxIndex(null);
+  }
+
+  function showLightboxNext() {
+    setLightboxIndex((current) => (current === null ? current : (current + 1) % items.length));
+  }
+
+  function showLightboxPrevious() {
+    setLightboxIndex((current) =>
+      current === null ? current : (current - 1 + items.length) % items.length,
+    );
+  }
+
   useEffect(() => {
     if (!isAutoPlaying) {
       return;
@@ -74,8 +118,36 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (lightboxIndex === null) {
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeLightbox();
+      }
+
+      if (event.key === "ArrowLeft") {
+        showLightboxPrevious();
+      }
+
+      if (event.key === "ArrowRight") {
+        showLightboxNext();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, items.length]);
+
+  const lightboxItem = lightboxIndex === null ? null : items[lightboxIndex];
+
   return (
-    <div className="hero-carousel" aria-label="Featured artists">
+    <div
+      className={`hero-carousel ${openOnDoubleClick ? "hero-carousel--lightbox-enabled" : ""}`}
+      aria-label={ariaLabel}
+    >
       <div
         className="hero-carousel__stage"
         role="region"
@@ -137,6 +209,11 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
               data-offset={offset}
               data-active={index === activeIndex}
               aria-hidden={!isVisible}
+              onDoubleClick={() => {
+                if (index === activeIndex) {
+                  openLightbox(index);
+                }
+              }}
               style={
                 {
                   "--hero-face-image": `url(${artist.image})`,
@@ -160,7 +237,7 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
         })}
       </div>
 
-      <div className="hero-carousel__dots" aria-label="Select featured artist">
+      <div className="hero-carousel__dots" aria-label={dotAriaLabel}>
         {items.map((artist, index) => (
           <button
             key={artist.name}
@@ -176,6 +253,42 @@ export function HeroCarousel({ items }: { items: readonly HeroFace[] }) {
           />
         ))}
       </div>
+
+      {openOnDoubleClick && lightboxItem ? (
+        <div className="media-lightbox" role="dialog" aria-modal="true" aria-label={lightboxAriaLabel}>
+          <button
+            type="button"
+            className="media-lightbox__close"
+            onClick={closeLightbox}
+            aria-label="Close slideshow"
+          >
+            Close
+          </button>
+          <button
+            type="button"
+            className="media-lightbox__nav media-lightbox__nav--previous"
+            onClick={showLightboxPrevious}
+            aria-label="Previous image"
+          >
+            Prev
+          </button>
+          <figure className="media-lightbox__figure">
+            <img src={lightboxItem.image} alt={`${lightboxItem.role}: ${lightboxItem.name}`} />
+            <figcaption>
+              <span>{lightboxItem.role}</span>
+              <strong>{lightboxItem.name}</strong>
+            </figcaption>
+          </figure>
+          <button
+            type="button"
+            className="media-lightbox__nav media-lightbox__nav--next"
+            onClick={showLightboxNext}
+            aria-label="Next image"
+          >
+            Next
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
