@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 const consentStorageKey = "joy-stage-tracking-consent";
 const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID || "2036904920238359";
 const internalTrafficCookieName = "jsp_internal";
+export const trackingConsentChangedEvent = "joy-stage-tracking-consent-changed";
 
 type ConsentChoice = "accepted" | "declined";
 type FbqFunction = {
@@ -159,6 +160,14 @@ export function CookieConsent() {
     if (choice === "accepted") {
       loadMetaPixel();
     }
+
+    window.dispatchEvent(
+      new CustomEvent(trackingConsentChangedEvent, {
+        detail: {
+          choice,
+        },
+      }),
+    );
   }
 
   if (!isReady) {

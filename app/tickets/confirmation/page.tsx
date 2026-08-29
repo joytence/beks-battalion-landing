@@ -269,29 +269,31 @@ export default async function TicketConfirmationPage({
   );
 
   const purchaseDataLayerPayload = {
-    event: "purchase",
+    event: "stripe_checkout_purchase_confirmed",
     event_id: session.id,
+    meta_event_name: "Purchase",
     transaction_id: session.id,
     value: amountTotalValue,
     currency: normalizedCurrency,
-    num_items: quantity,
+    num_items: 1,
     ticket_quantity: quantity,
     ticket_type: tier.name,
     ecommerce: {
       transaction_id: session.id,
       value: amountTotalValue,
       currency: normalizedCurrency,
-      num_items: quantity,
+      num_items: 1,
       ticket_quantity: quantity,
       ticket_type: tier.name,
       items: [
         {
           item_id: tier.id,
-          item_name: `${eventDetails.name} - ${tier.name}`,
+          item_name: `${eventDetails.name} - ${tier.name} Order`,
           item_category: "tickets",
           item_variant: tier.name,
-          price: Number((tier.priceCents / 100).toFixed(2)),
-          quantity,
+          price: amountTotalValue,
+          quantity: 1,
+          ticket_quantity: quantity,
         },
       ],
     },

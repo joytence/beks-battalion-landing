@@ -66,6 +66,14 @@ export async function sendStripePurchaseMetaEvent(
   eventCreated: number,
   eventSource: StripePurchaseEventSource,
 ): Promise<MetaCapiEventResult> {
+  if (session.payment_status !== "paid") {
+    return {
+      ok: true,
+      reason: `Stripe Checkout Session payment_status is ${session.payment_status}; Purchase was not sent.`,
+      skipped: true,
+    };
+  }
+
   const amounts = getStripePurchaseAmounts(session);
   const currency = (session.currency || "usd").toUpperCase();
   const isAdminTestCheckout = session.metadata?.admin_test_checkout === "true";
@@ -95,7 +103,7 @@ export async function sendStripePurchaseMetaEvent(
         currency,
         expected_checkout_subtotal: amounts.expectedCheckoutSubtotalValue || undefined,
         expected_ticket_subtotal: amounts.expectedTicketSubtotalValue || undefined,
-        num_items: amounts.ticketQuantity || undefined,
+        num_items: 1,
         order_id: session.id,
         processing_fee: amounts.processingFeeValue || undefined,
         purchase_event_source: eventSource,
@@ -179,6 +187,15 @@ export async function sendClaimedStripePurchaseMetaEvent(
   eventCreated: number,
   eventSource: StripePurchaseEventSource,
 ) {
+  if (session.payment_status !== "paid") {
+    console.info("Meta CAPI purchase event skipped for unpaid Stripe session:", {
+      paymentStatus: session.payment_status,
+      sessionId: session.id,
+      source: eventSource,
+    });
+    return null;
+  }
+
   const claimedOrder = await claimMetaCapiPurchaseEventSend(session.id);
 
   if (!claimedOrder) {

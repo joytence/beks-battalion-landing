@@ -92,10 +92,17 @@ export async function POST(request: Request) {
         ticketType: amounts.ticketType,
       });
 
-      await sendClaimedStripePurchaseMetaEvent(session, event.created, "stripe_webhook");
+      if (session.payment_status !== "paid") {
+        console.info("Stripe checkout session completed before payment was confirmed; waiting for paid status.", {
+          paymentStatus: session.payment_status,
+          sessionId: session.id,
+        });
+        break;
+      }
 
       try {
         await syncReservedSeatPaymentConfirmed(session);
+        await sendClaimedStripePurchaseMetaEvent(session, event.created, "stripe_webhook");
         claimedOrder = await claimCustomerReceiptEmailSend(session.id);
 
         if (claimedOrder) {

@@ -1621,13 +1621,15 @@ export async function claimMetaCapiPurchaseEventSend(checkoutSessionId: string) 
           metaCapiPurchaseLockedAt: Date | null;
           metaCapiPurchaseSentAt: Date | null;
           metaCapiPurchaseStatus: string;
+          orderStatus: OrderStatus;
         }[]
       >`
         select
           ticket_orders.id,
           ticket_orders.meta_capi_purchase_locked_at as "metaCapiPurchaseLockedAt",
           ticket_orders.meta_capi_purchase_sent_at as "metaCapiPurchaseSentAt",
-          coalesce(ticket_orders.meta_capi_purchase_status, 'pending') as "metaCapiPurchaseStatus"
+          coalesce(ticket_orders.meta_capi_purchase_status, 'pending') as "metaCapiPurchaseStatus",
+          ticket_orders.order_status as "orderStatus"
         from ticket_orders
         where ticket_orders.checkout_session_id = ${checkoutSessionId}
         limit 1
@@ -1635,7 +1637,7 @@ export async function claimMetaCapiPurchaseEventSend(checkoutSessionId: string) 
       `;
       const order = orders[0];
 
-      if (!order || order.metaCapiPurchaseSentAt) {
+      if (!order || order.orderStatus !== "paid" || order.metaCapiPurchaseSentAt) {
         return null;
       }
 
