@@ -29,7 +29,10 @@ export function SocialProofVideo({
       >
         <source src={src} type="video/mp4" />
       </video>
-      <div className="social-proof-media-hint">Double-click for full-screen player</div>
+      <a className="social-proof-video-button" href={fullPageHref}>
+        View Full Screen
+      </a>
+      <div className="social-proof-media-hint">Double-click video for full-screen player</div>
     </div>
   );
 }

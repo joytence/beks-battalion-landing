@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-const MAX_TICKETS_PER_ORDER = 10;
+const MAX_TICKETS_PER_ORDER = 50;
 
 export const eventDetails = {
   city: "San Diego",

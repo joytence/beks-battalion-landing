@@ -1490,20 +1490,47 @@ a {
   cursor: zoom-in;
 }
 
-.social-proof-media-hint {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
-  padding: 7px 10px;
+.social-proof-video-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 260px);
+  min-height: 46px;
+  margin: 12px auto 0;
+  padding: 12px 18px;
+  border: 1px solid rgba(255, 198, 54, 0.44);
   border-radius: 999px;
-  background: rgba(0, 0, 0, 0.66);
+  background: linear-gradient(135deg, #ffcf3f 0%, #ff2a7d 100%);
+  color: #080604;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow:
+    0 12px 28px rgba(255, 42, 125, 0.22),
+    0 0 24px rgba(255, 198, 54, 0.16);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.social-proof-video-button:hover,
+.social-proof-video-button:focus-visible {
+  transform: translateY(-1px);
+  box-shadow:
+    0 16px 34px rgba(255, 42, 125, 0.3),
+    0 0 30px rgba(255, 198, 54, 0.22);
+}
+
+.social-proof-media-hint {
+  margin-top: 8px;
   color: var(--gold-soft);
   font-family: var(--font-bebas-neue), sans-serif;
   font-size: 0.85rem;
   letter-spacing: 0.12em;
+  text-align: center;
   text-transform: uppercase;
-  pointer-events: none;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.34);
 }
 
 .social-proof-video-list {
@@ -3512,7 +3539,7 @@ a {
   }
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1180px) {
   .topbar__inner {
     flex-wrap: nowrap;
     gap: 12px;
@@ -3560,6 +3587,116 @@ a {
 
   .topbar__countdown-lead {
     font-size: clamp(1.16rem, 2.25vw, 1.5rem);
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) {
+  .topbar__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "brand actions"
+      "countdown countdown";
+    row-gap: 10px;
+    column-gap: 18px;
+    padding: 12px 22px 14px;
+  }
+
+  .brand {
+    grid-area: brand;
+    max-width: min(58vw, 520px);
+  }
+
+  .brand__title {
+    font-size: clamp(1.02rem, 2.15vw, 1.22rem);
+    letter-spacing: 0.18em;
+  }
+
+  .brand__subtitle {
+    font-size: clamp(0.58rem, 1.28vw, 0.72rem);
+    letter-spacing: 0.24em;
+  }
+
+  .topbar__countdown {
+    grid-area: countdown;
+    justify-self: center;
+    min-width: min(100%, 286px);
+  }
+
+  .topbar__actions {
+    grid-area: actions;
+    justify-self: end;
+    margin-left: 0;
+  }
+
+  .topbar__countdown-hours {
+    display: inline;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .brand {
+    max-width: max-content;
+  }
+
+  .brand__copy {
+    display: none;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1180px) and (max-height: 860px) {
+  .hero {
+    gap: 18px;
+    padding-top: clamp(112px, 14vh, 148px);
+  }
+
+  .hero__eventline {
+    gap: 4px;
+  }
+
+  .hero__visual {
+    --hero-showcase-card-height: 500px;
+    gap: 14px 22px;
+  }
+
+  .tickets-cta-card--hero {
+    gap: 10px;
+    padding: 20px 22px;
+  }
+
+  .tickets-cta-card--hero h2 {
+    font-size: clamp(2rem, 4.1vw, 3.1rem);
+  }
+
+  .tickets-cta-card__counter {
+    min-width: min(100%, 318px);
+    padding: 10px 16px;
+  }
+
+  .tickets-cta-card__counter-kicker {
+    font-size: clamp(0.88rem, 1.6vw, 1.02rem);
+  }
+
+  .tickets-cta-card__counter strong {
+    font-size: clamp(3rem, 5.8vw, 4.1rem);
+  }
+
+  .tickets-cta-card__counter span:last-child {
+    font-size: clamp(1.22rem, 2.4vw, 1.55rem);
+  }
+
+  .tickets-cta-card p {
+    font-size: clamp(0.92rem, 1.55vw, 1rem);
+    line-height: 1.5;
+  }
+
+  .tickets-cta-card__button {
+    min-height: 44px;
+  }
+
+  .tickets-cta-card .tickets-cta-card__note--price {
+    font-size: clamp(1.25rem, 2.3vw, 1.62rem);
+    letter-spacing: 0.13em;
   }
 }
 
@@ -4258,6 +4395,36 @@ a {
   .page--hero {
     background-position: center 24px;
     background-size: cover;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) and (max-height: 768px) {
+  .topbar__inner {
+    grid-template-columns: auto auto;
+    grid-template-areas:
+      "brand actions"
+      "countdown countdown";
+  }
+
+  .brand {
+    max-width: max-content;
+  }
+
+  .brand__copy {
+    display: none;
+  }
+
+  .topbar__countdown {
+    justify-self: center;
+    min-width: min(100%, 300px);
+  }
+
+  .topbar__countdown-lead {
+    text-align: center;
+  }
+
+  .topbar__countdown-hours {
+    display: inline;
   }
 }
 
