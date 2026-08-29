@@ -3592,19 +3592,20 @@ a {
 
 @media (min-width: 769px) and (max-width: 1180px) {
   .topbar__inner {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      "brand actions"
-      "countdown countdown";
-    row-gap: 10px;
-    column-gap: 18px;
-    padding: 12px 22px 14px;
+    position: relative;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    min-height: 76px;
+    padding: 10px 18px;
   }
 
   .brand {
-    grid-area: brand;
-    max-width: min(58vw, 520px);
+    max-width: max-content;
+  }
+
+  .brand__copy {
+    display: none;
   }
 
   .brand__title {
@@ -3618,15 +3619,15 @@ a {
   }
 
   .topbar__countdown {
-    grid-area: countdown;
-    justify-self: center;
-    min-width: min(100%, 286px);
+    position: absolute;
+    left: 50%;
+    justify-self: auto;
+    min-width: min(42vw, 300px);
+    transform: translateX(-50%);
   }
 
   .topbar__actions {
-    grid-area: actions;
-    justify-self: end;
-    margin-left: 0;
+    margin-left: auto;
   }
 
   .topbar__countdown-hours {
@@ -3635,12 +3636,8 @@ a {
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
-  .brand {
-    max-width: max-content;
-  }
-
-  .brand__copy {
-    display: none;
+  .topbar__countdown {
+    min-width: min(42vw, 300px);
   }
 }
 
@@ -4303,6 +4300,7 @@ a {
 
 @media (max-width: 700px) {
   .topbar__inner {
+    position: relative;
     flex-wrap: nowrap;
     gap: 8px;
     padding: 10px 12px;
@@ -4311,7 +4309,7 @@ a {
   .topbar__actions {
     order: 0;
     width: auto;
-    margin-left: 0;
+    margin-left: auto;
     gap: 6px;
     flex-wrap: nowrap;
     flex: 0 0 auto;
@@ -4351,9 +4349,12 @@ a {
   }
 
   .topbar__countdown {
+    position: absolute;
+    left: 50%;
     min-width: 98px;
     padding: 7px 9px;
     flex-shrink: 1;
+    transform: translateX(-50%);
   }
 
   .topbar__countdown-hours {
@@ -4398,12 +4399,13 @@ a {
   }
 }
 
-@media (min-width: 769px) and (max-width: 1024px) and (max-height: 768px) {
+@media (min-width: 769px) and (max-width: 1180px) and (max-height: 860px) {
   .topbar__inner {
-    grid-template-columns: auto auto;
-    grid-template-areas:
-      "brand actions"
-      "countdown countdown";
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    min-height: 76px;
+    padding: 10px 18px;
   }
 
   .brand {
@@ -4415,8 +4417,15 @@ a {
   }
 
   .topbar__countdown {
-    justify-self: center;
-    min-width: min(100%, 300px);
+    position: absolute;
+    left: 50%;
+    justify-self: auto;
+    min-width: min(42vw, 300px);
+    transform: translateX(-50%);
+  }
+
+  .topbar__actions {
+    margin-left: auto;
   }
 
   .topbar__countdown-lead {
