@@ -73,3 +73,4 @@ export const specialPerformers = [
   },
 ] as const;
 
+export const homepagePerformers = [...heroFaces, ...specialPerformers] as const;

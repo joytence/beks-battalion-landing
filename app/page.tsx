@@ -4,8 +4,8 @@ import { SiteFooter } from "./SiteFooter";
 import { SocialProofVideo } from "./SocialProofVideo";
 import { SponsorLogoFooter } from "./SponsorLogoFooter";
 import { TopbarActions } from "./TopbarActions";
-import { heroFaces } from "@/lib/performers";
-import { socialProofVideo, soldOutShowMoments, videoLibraryItems } from "@/lib/social-proof";
+import { homepagePerformers } from "@/lib/performers";
+import { socialProofVideos, soldOutShowMoments } from "@/lib/social-proof";
 import { getUnavailableSeatLabels, isTicketingDatabaseConfigured } from "@/lib/ticketing-store";
 import { eventDetails, getTicketSeatChart } from "@/lib/ticketing";
 
@@ -20,7 +20,6 @@ const marqueeItems = [
 ];
 
 const topbarCtas = [
-  { href: "/performers", label: "Special Performers", tone: "gold" },
   { href: "/tickets", label: "Buy Tickets", tone: "hot" },
   { href: "/sponsors", label: "Sponsor Info", tone: "gold" },
 ] as const;
@@ -59,10 +58,28 @@ function EventMarquee() {
   );
 }
 
+async function getHomepageUnavailableSeatLabels() {
+  if (!isTicketingDatabaseConfigured()) {
+    return new Set<string>();
+  }
+
+  try {
+    return await getUnavailableSeatLabels();
+  } catch (error) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn(
+        "Ticket database is unavailable for local preview; rendering homepage without live seat holds.",
+        error,
+      );
+      return new Set<string>();
+    }
+
+    throw error;
+  }
+}
+
 export default async function Page() {
-  const unavailableSeatLabels = isTicketingDatabaseConfigured()
-    ? await getUnavailableSeatLabels()
-    : new Set<string>();
+  const unavailableSeatLabels = await getHomepageUnavailableSeatLabels();
   const seatChart = getTicketSeatChart({ blockedSeatLabels: unavailableSeatLabels });
   const svipSeats = seatChart.blocks.flatMap((block) =>
     block.rows.flatMap((row) => row.seats.filter((seat) => seat.tierId === "svip")),
@@ -110,7 +127,11 @@ export default async function Page() {
           </div>
 
           <div className="hero__visual">
-            <HeroCarousel items={heroFaces} />
+            <HeroCarousel
+              items={homepagePerformers}
+              ariaLabel="Beks Battalion and Joy Stage performers"
+              dotAriaLabel="Select performer"
+            />
             <div className="hero__cta-stack" id="tickets">
               <div className="tickets-cta-card tickets-cta-card--hero">
                 <h2>Don&apos;t miss a night of laughs.</h2>
@@ -150,18 +171,9 @@ export default async function Page() {
                   <strong>See the energy</strong>
                 </div>
                 <SocialProofVideo
-                  poster={socialProofVideo.poster}
-                  src={socialProofVideo.src}
+                  videos={socialProofVideos}
                   fullPageHref="/social-proof/video"
                 />
-                <div className="social-proof-video-list" aria-label="Video library draft items">
-                  {videoLibraryItems.map((item) => (
-                    <div key={item} className="social-proof-video-list__item">
-                      <span />
-                      {item}
-                    </div>
-                  ))}
-                </div>
               </article>
 
               <article className="social-proof-card social-proof-card--carousel">
@@ -185,13 +197,6 @@ export default async function Page() {
               </article>
             </section>
 
-            <p className="hero__opening-copy">
-              Our main show will be opened by 6 local artist to include our very own Producer - Joy
-              Tence
-            </p>
-            <a className="cta cta--outline-pink hero__performers-cta" href="/performers">
-              See All Opening Acts
-            </a>
           </div>
         </div>
       </section>

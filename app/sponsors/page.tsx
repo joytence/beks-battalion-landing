@@ -9,7 +9,6 @@ import { eventDetails } from "@/lib/ticketing";
 const sponsorNav = [
   { href: "/", label: "Back Home", tone: "gold" },
   { href: "/tickets", label: "Buy Tickets", tone: "hot" },
-  { href: "/performers", label: "Special Performers", tone: "gold" },
 ] as const;
 
 export default function SponsorsPage() {

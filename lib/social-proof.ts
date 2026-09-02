@@ -1,13 +1,17 @@
-export const videoLibraryItems = [
-  "Sold-out Canada shows",
-  "Audience energy",
-  "Don't miss the opportunity",
+export const socialProofVideos = [
+  {
+    title: "Canada's Crowd Energy",
+    description: "Crowd energy from packed Beks Battalion shows.",
+    poster: "/assets/beks-battalion-poster.png",
+    src: "/assets/social-proof/beks-sold-out-shows-canada.mp4",
+  },
+  {
+    title: "Sold-Out Australia Shows",
+    description: "Another full-room show moment from the Beks Battalion tour.",
+    poster: "/assets/beks-battalion-poster.png",
+    src: "/assets/social-proof/australia.mp4",
+  },
 ] as const;
-
-export const socialProofVideo = {
-  poster: "/assets/beks-battalion-poster.png",
-  src: "/assets/social-proof/beks-sold-out-shows-canada.mp4",
-} as const;
 
 export const soldOutShowMoments = [
   {
