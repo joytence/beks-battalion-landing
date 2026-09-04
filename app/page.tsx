@@ -168,8 +168,8 @@ export default async function Page() {
             >
               <article className="social-proof-card social-proof-card--video">
                 <div className="social-proof-card__header">
-                  <span>Video Library</span>
-                  <strong>After shows in Australia and Canada, the world tour hits the US.</strong>
+                  <span>Canada and Australia Sold Out Show</span>
+                  <strong>Next Stop USA</strong>
                 </div>
                 <SocialProofVideo
                   videos={socialProofVideos}
