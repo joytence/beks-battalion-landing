@@ -41,7 +41,9 @@ export const specialPerformers = [
     role: "Producer/Performer",
     tone: "gold",
     image: "/assets/joy-tence.jpeg",
-    position: "center center",
+    position: "78% center",
+    logo: "/assets/joy-stage-logo-gold.png",
+    logoAlt: "Joy Stage Productions logo",
   },
   {
     name: "Lloyd Guilalas",

@@ -71,7 +71,7 @@ export const soldOutShowMoments = [
     position: "center center",
   },
   {
-    name: "People Show Up",
+    name: "Packed Room Energy",
     role: "Don't Miss This",
     tone: "orange",
     image: "/assets/social-proof/social-proof-09.jpg",
