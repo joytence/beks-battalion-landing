@@ -23,16 +23,15 @@ type AdminIssuedPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-async function buildQrMarkup(value: string) {
-  return QRCode.toString(value, {
+async function buildQrDataUrl(value: string) {
+  return QRCode.toDataURL(value, {
     color: {
       dark: "#111111",
       light: "#ffffff",
     },
     errorCorrectionLevel: "M",
     margin: 2,
-    type: "svg",
-    width: 256,
+    width: 180,
   });
 }
 
@@ -120,11 +119,11 @@ export default async function TicketAdminIssuedPage({ searchParams }: AdminIssue
         version: 2,
       });
       const verifyUrl = `${siteUrl}/tickets/verify?ticket=${encodeURIComponent(token)}`;
-      const qrMarkup = await buildQrMarkup(verifyUrl);
+      const qrDataUrl = await buildQrDataUrl(verifyUrl);
 
       return {
         code: createTicketCode(order.checkoutSessionId, ticket.ticketIndex),
-        qrMarkup,
+        qrDataUrl,
         seatLabel: ticket.seatLabel,
         ticketIndex: ticket.ticketIndex,
       };
@@ -214,8 +213,9 @@ export default async function TicketAdminIssuedPage({ searchParams }: AdminIssue
             <div className={styles.qrPanel}>
               <div
                 className={styles.qrFrame}
-                dangerouslySetInnerHTML={{ __html: ticket.qrMarkup }}
-              />
+              >
+                <img src={ticket.qrDataUrl} alt="" aria-hidden="true" />
+              </div>
               <div className={styles.qrCaption}>
                 Scan to verify this ticket.
                 <br />

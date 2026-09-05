@@ -1916,9 +1916,9 @@
   }
 
   .ticketGrid {
+    display: block;
     margin: 0;
     max-width: none;
-    gap: 16px;
   }
 
   .ticketCard {
@@ -1929,6 +1929,14 @@
     color: #111 !important;
     page-break-inside: avoid;
     break-inside: avoid;
+    page-break-after: always;
+    break-after: page;
+    margin: 0;
+  }
+
+  .ticketCard:last-child {
+    page-break-after: auto;
+    break-after: auto;
   }
 
   .ticketMeta,
