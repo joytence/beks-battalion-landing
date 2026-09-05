@@ -120,7 +120,15 @@ export default async function Page() {
 
         <div className="page__inner hero">
           <div className="hero__eventline">
-            <div className="hero__eventline-show">Beks Battalion</div>
+            <div className="hero__eventline-show">
+              <img
+                className="hero__eventline-logo"
+                src="/assets/beks-battalion-headline-logo.png"
+                alt=""
+                aria-hidden="true"
+              />
+              <span>Beks Battalion</span>
+            </div>
             <div className="hero__eventline-script">LIVE!</div>
             <div className="hero__eventline-title">IN SAN DIEGO</div>
             <div className="hero__eventline-date">SEP 13, 2026 | 5PM to 9PM</div>

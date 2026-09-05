@@ -1893,11 +1893,17 @@
 }
 
 @media print {
+  @page {
+    size: Letter;
+    margin: 0.35in;
+  }
+
   .page,
   .receiptPage {
     padding: 0;
     background: #fff !important;
     color: #111 !important;
+    font-family: Arial, Helvetica, sans-serif;
   }
 
   .heroCard,
@@ -1916,8 +1922,9 @@
   }
 
   .ticketCard {
-    border: 1px solid #bbb;
-    box-shadow: none;
+    border: 1px solid #777;
+    border-radius: 0;
+    box-shadow: none !important;
     background: #fff !important;
     color: #111 !important;
     page-break-inside: avoid;
@@ -1926,13 +1933,30 @@
 
   .ticketMeta,
   .qrPanel {
+    border-radius: 0;
     border-color: #ccc;
     background: #fff !important;
   }
 
   .qrFrame {
+    border-radius: 0;
     border: 1px solid #ccc;
     background: #fff !important;
+  }
+
+  .qrFrame img {
+    display: block;
+    width: 180px;
+    height: 180px;
+  }
+
+  .ticketCard,
+  .ticketBody,
+  .ticketMeta,
+  .qrPanel,
+  .qrFrame {
+    background-image: none !important;
+    filter: none !important;
   }
 
   .ticketTitle,

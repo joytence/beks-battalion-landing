@@ -589,6 +589,10 @@ a {
 }
 
 .hero__eventline-show {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.65rem, 1.2vw, 1.15rem);
   font-family: var(--font-bebas-neue), sans-serif;
   font-size: clamp(2.75rem, 5.1vw, 4.85rem);
   line-height: 0.86;
@@ -598,6 +602,14 @@ a {
   text-shadow:
     0 0 12px rgba(255, 198, 54, 0.64),
     0 6px 18px rgba(0, 0, 0, 0.72);
+}
+
+.hero__eventline-logo {
+  width: clamp(2.8rem, 5vw, 4.8rem);
+  height: clamp(2.8rem, 5vw, 4.8rem);
+  flex: 0 0 auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
 }
 
 .hero__eventline-script {
