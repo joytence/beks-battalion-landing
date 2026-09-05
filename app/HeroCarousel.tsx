@@ -9,8 +9,10 @@ type HeroFace = {
   tone: "gold" | "orange" | "pink";
   image: string;
   position: string;
+  imageSize?: string;
   logo?: string;
   logoAlt?: string;
+  logoSize?: string;
 };
 
 function getCarouselOffset(index: number, activeIndex: number, length: number) {
@@ -218,6 +220,8 @@ export function HeroCarousel({
                 {
                   "--hero-face-image": `url(${artist.image})`,
                   "--hero-face-position": artist.position,
+                  "--hero-face-size": artist.imageSize ?? "cover",
+                  "--hero-logo-size": artist.logoSize ?? "42px",
                 } as CSSProperties
               }
             >
