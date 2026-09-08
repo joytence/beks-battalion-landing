@@ -39,7 +39,10 @@ An isolated electronic ticketing flow now lives in these routes:
 - `/tickets/admin/issue` - admin sponsor and comp ticket issue flow
 - `/tickets/admin/issued?order_id=...` - printable admin-issued ticket page
 - `/tickets/confirmation?session_id=...` - print-ready ticket page after payment
+- `/tickets/upgrade?access=...` - secure signed SVIP upgrade page for an eligible paid order
+- `/tickets/upgrade/confirmation?session_id=...` - confirmation page after a paid SVIP upgrade
 - `/tickets/verify?ticket=...` - signed QR verification page
+- `/contact` - customer support page for ticket, payment, accessibility, and general questions
 
 Required environment variables for the ticketing flow:
 
@@ -60,9 +63,12 @@ Required environment variables for the ticketing flow:
 - `TWILIO_FROM_NUMBER` (optional, use this or `TWILIO_MESSAGING_SERVICE_SID` for ticket SMS delivery)
 - `TWILIO_MESSAGING_SERVICE_SID` (optional alternative to `TWILIO_FROM_NUMBER` for ticket SMS delivery)
 
+SVIP upgrade variables use the existing ticketing configuration. No separate public order identifier is exposed: upgrade links contain a signed order access token, and the server verifies the token before loading or changing an order.
+
 Notes:
 
 - The landing page is not linked to the ticketing draft yet.
+- Customer support inquiries from `/contact` are sent through the existing Resend inquiry service to `joy.tence@joystageproductions.com`.
 - Payments are intentionally paused unless `TICKET_CHECKOUT_ENABLED=true` is present.
 - The safer tier-only test flow requires `TICKET_TIER_TEST_CHECKOUT_ENABLED=true` and a Stripe test key such as `sk_test_...` or `rk_test_...`.
 - Stripe Tax is gated behind `STRIPE_TAX_ENABLED=true` so checkout does not fail before tax registrations are configured in Stripe.
@@ -70,6 +76,11 @@ Notes:
 - Checkout now adds a separate 3% processing fee line item on top of the ticket subtotal in both reserved-seat checkout and the test tier-only checkout flow.
 - The ticket page now discloses that 3% processing fee before payment and Stripe Checkout itemizes it as a separate line item.
 - Reserved-seat checkout now requires Postgres-backed seat holds, fulfilled tickets, and webhook reconciliation before live payments.
+- Paid GA/VIP orders can be upgraded to SVIP through a signed link. The upgrade preserves the original seats and creates a separate Stripe Checkout Session for the price difference plus the configured processing-fee rule.
+- Upgrade fulfillment is idempotent and only changes the order tier after Stripe confirms the upgrade session is paid. The upgrade Checkout Session ID is stored on the order for reconciliation.
+- Upgrade receipt links are available on the paid confirmation page and in the customer receipt email. Refreshing the confirmation page does not create another upgrade or duplicate fulfillment.
+- Ticket verification and QR generation use the order’s current database tier, so upgraded tickets verify as SVIP instead of retaining the original GA/VIP tier.
+- Printable ticket cards use one page per ticket and lighter print styling. QR codes are rendered as compact data URLs to reduce print spool size.
 - The admin reassignment route expects either `Authorization: Bearer <TICKET_ADMIN_SECRET>` or `X-Ticket-Admin-Secret: <TICKET_ADMIN_SECRET>`.
 - The admin block route accepts `POST` to block seats and `DELETE` to unblock seats using the same admin secret header pattern.
 - The admin issue route accepts `POST` to convert already blocked seats into printable sponsor or comp tickets without Stripe Checkout.
@@ -113,3 +124,9 @@ Notes:
 - This version verifies paid Stripe sessions and generates signed QR ticket links, and reserved-seat confirmations now read current seat assignments from the database.
 - Live Stripe webhook endpoint path: `/api/tickets/webhook`
 - Subscribe the webhook to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, and `checkout.session.expired`.
+
+## Recent Site Updates
+
+- The hero includes the Beks Battalion headline logo and the Joy Tence carousel uses the warm portrait asset with adjusted zoom and logo sizing.
+- Social proof includes the Canada and Australia videos, full-screen playback, and the current copy `Canada and Australia Sold Out Show` / `Next Stop USA`.
+- Print layout work and the recent visual updates were deployed previously. The secure SVIP upgrade implementation is currently local and still requires deployment and Stripe test verification.

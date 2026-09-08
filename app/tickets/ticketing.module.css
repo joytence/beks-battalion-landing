@@ -1922,21 +1922,52 @@
   }
 
   .ticketCard {
+    box-sizing: border-box;
+    height: 10.3in;
+    max-height: 10.3in;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 190px;
+    gap: 16px;
+    padding: 18px;
     border: 1px solid #777;
     border-radius: 0;
     box-shadow: none !important;
     background: #fff !important;
     color: #111 !important;
-    page-break-inside: avoid;
     break-inside: avoid;
-    page-break-after: always;
     break-after: page;
     margin: 0;
   }
 
   .ticketCard:last-child {
-    page-break-after: auto;
     break-after: auto;
+  }
+
+  .ticketBody {
+    min-width: 0;
+    gap: 12px;
+  }
+
+  .ticketHeader {
+    gap: 12px;
+  }
+
+  .ticketTitle {
+    font-size: 2.25rem;
+  }
+
+  .ticketMeta {
+    padding: 12px;
+    gap: 8px 12px;
+  }
+
+  .ticketMetaItem {
+    gap: 3px;
+  }
+
+  .ticketNotes {
+    line-height: 1.35;
   }
 
   .ticketMeta,
@@ -1956,6 +1987,11 @@
     display: block;
     width: 180px;
     height: 180px;
+  }
+
+  .qrPanel {
+    padding: 12px;
+    gap: 10px;
   }
 
   .ticketCard,

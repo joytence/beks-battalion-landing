@@ -60,6 +60,9 @@ export function SiteFooter() {
           <strong className="footer__brand">Joy Stage Productions LLC</strong>
           <div>Event landing page concept for Beks Battalion.</div>
           <div className="footer__legal">
+            <a className="footer__privacy" href="/contact">
+              Contact Us
+            </a>
             <a className="footer__privacy" href="/privacy">
               Privacy Policy
             </a>
@@ -67,6 +70,9 @@ export function SiteFooter() {
               Terms And Conditions
             </a>
           </div>
+          <a className="footer__support" href="mailto:joy.tence@joystageproductions.com">
+            Customer support: joy.tence@joystageproductions.com
+          </a>
         </div>
 
         <div className="footer__social" aria-label="Social links">

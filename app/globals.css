@@ -2720,6 +2720,10 @@ a {
   width: min(100%, 330px);
 }
 
+.tickets-cta-card__support {
+  width: min(100%, 330px);
+}
+
 .tickets-cta-card .tickets-cta-card__note {
   font-family: var(--font-bebas-neue), sans-serif;
   font-size: 1rem;
@@ -3318,6 +3322,140 @@ a {
   gap: 14px;
 }
 
+.footer__support {
+  display: inline-flex;
+  margin-top: 12px;
+  color: rgba(245, 241, 232, 0.72);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.footer__support:hover,
+.footer__support:focus-visible {
+  color: var(--gold-soft);
+}
+
+.page--contact {
+  min-height: calc(100svh - 160px);
+  background:
+    radial-gradient(circle at 18% 10%, rgba(255, 173, 42, 0.16), transparent 28%),
+    radial-gradient(circle at 82% 28%, rgba(255, 31, 120, 0.12), transparent 28%),
+    linear-gradient(180deg, #100b08, #050505 72%);
+}
+
+.contact-page {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(360px, 1fr);
+  gap: clamp(28px, 6vw, 88px);
+  align-items: center;
+  max-width: 1120px;
+  padding-block: clamp(44px, 9vh, 96px);
+}
+
+.contact-page__intro {
+  display: grid;
+  gap: 18px;
+}
+
+.contact-page__intro .section-tag {
+  justify-content: flex-start;
+}
+
+.contact-page__intro p {
+  max-width: 48ch;
+  color: rgba(245, 241, 232, 0.8);
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+
+.contact-page__email {
+  color: var(--gold-soft);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.contact-page__card {
+  padding: clamp(22px, 4vw, 42px);
+  border: 1px solid rgba(255, 207, 90, 0.25);
+  border-radius: 28px;
+  background: rgba(8, 8, 8, 0.78);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+}
+
+.contact-form {
+  display: grid;
+  gap: 16px;
+}
+
+.contact-form label {
+  display: grid;
+  gap: 7px;
+  color: rgba(245, 241, 232, 0.88);
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.contact-form label span {
+  color: rgba(245, 241, 232, 0.52);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.contact-form input,
+.contact-form select,
+.contact-form textarea {
+  width: 100%;
+  border: 1px solid rgba(245, 179, 33, 0.26);
+  border-radius: 14px;
+  padding: 13px 14px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.055);
+  font: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+  outline: none;
+}
+
+.contact-form select option {
+  color: #111;
+}
+
+.contact-form textarea {
+  resize: vertical;
+}
+
+.contact-form input:focus,
+.contact-form select:focus,
+.contact-form textarea:focus {
+  border-color: rgba(255, 207, 90, 0.82);
+  box-shadow: 0 0 0 3px rgba(255, 207, 90, 0.12);
+}
+
+.contact-form__submit {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.contact-form__feedback {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  line-height: 1.4;
+}
+
+.contact-form__feedback--success {
+  color: #1b1200;
+  background: rgba(255, 207, 90, 0.92);
+}
+
+.contact-form__feedback--error {
+  color: #ffdce7;
+  background: rgba(255, 31, 120, 0.14);
+  border: 1px solid rgba(255, 31, 120, 0.36);
+}
+
 .footer__social {
   display: flex;
   gap: 10px;
@@ -3817,6 +3955,16 @@ a {
 @media (max-width: 700px) {
   .page {
     padding: 22px 16px 34px;
+  }
+
+  .contact-page {
+    grid-template-columns: 1fr;
+    gap: 28px;
+    padding-block: 34px 48px;
+  }
+
+  .contact-page__card {
+    padding: 20px 16px;
   }
 
   .modal-backdrop {

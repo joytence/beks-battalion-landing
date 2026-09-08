@@ -21,6 +21,7 @@ const marqueeItems = [
 
 const topbarCtas = [
   { href: "/tickets", label: "Buy Tickets", tone: "hot" },
+  { href: "/contact", label: "Contact Us", tone: "ghost" },
   { href: "/sponsors", label: "Sponsor Info", tone: "gold" },
 ] as const;
 
@@ -160,6 +161,9 @@ export default async function Page() {
                 </p>
                 <a className="cta cta--hot tickets-cta-card__button" href="/tickets">
                   Buy Your Tickets Now!
+                </a>
+                <a className="cta cta--ghost tickets-cta-card__support" href="/contact">
+                  Questions? Contact Us
                 </a>
                 <p className="tickets-cta-card__note tickets-cta-card__note--price">
                   Tickets start from $100

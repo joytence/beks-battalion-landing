@@ -4,7 +4,7 @@ import { getMetaTrackingContext, sendMetaCapiEvent } from "@/lib/meta-capi";
 const recipient = "joy.tence@joystageproductions.com";
 const sender = "Joy Stage Productions <inquiries@joystageproductions.com>";
 
-type InquiryKind = "ticket" | "sponsor";
+type InquiryKind = "support" | "ticket" | "sponsor";
 
 type InquiryPayload = {
   businessName?: unknown;
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   const sourceUrl = clean(payload.sourceUrl) || request.headers.get("referer") || "";
   const trackingConsent = payload.trackingConsent === true;
 
-  if (kind !== "ticket" && kind !== "sponsor") {
+  if (kind !== "support" && kind !== "ticket" && kind !== "sponsor") {
     return NextResponse.json({ message: "Please choose a valid inquiry type." }, { status: 400 });
   }
 
@@ -106,7 +106,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const inquiryLabel = kind === "ticket" ? "Ticket Inquiry" : "Sponsor Inquiry";
+  const inquiryLabel =
+    kind === "ticket" ? "Ticket Inquiry" : kind === "sponsor" ? "Sponsor Inquiry" : "Customer Support";
   const subject = `Beks Battalion ${inquiryLabel} - ${itemName}`;
   const lines = buildInquiryLines({
     businessName,

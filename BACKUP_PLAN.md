@@ -30,6 +30,12 @@ This site has several parts. A full backup is not just one file.
 6. Domain and DNS settings
 7. Sponsor logos and other public assets
 
+## Current Implementation Status
+
+Recent completed work includes the warm Joy Tence carousel update, Beks Battalion headline logo, Canada/Australia social-proof media, full-screen media viewing, and one-ticket-per-page print output with smaller QR codes.
+
+The secure SVIP upgrade flow is implemented locally in commit `193a3db` but is not yet deployed. Before pushing it live, create a database backup and record the current Vercel production deployment so the upgrade can be rolled back independently if needed.
+
 ## 1. Code Backup
 
 The main code backup is GitHub.
@@ -199,6 +205,17 @@ Use this checklist before sponsor, ticketing, checkout, or database changes:
 [ ] No secret values are being pasted into chat or committed.
 [ ] Stripe mode is understood: test or live.
 [ ] After deployment, live site and ticket checkout are tested.
+```
+
+For the SVIP upgrade deployment, also verify:
+
+```text
+[ ] A paid GA/VIP order is available for testing.
+[ ] The upgrade link is signed and does not expose a public order lookup.
+[ ] The original seats remain assigned after upgrading.
+[ ] Stripe confirms payment before the order tier changes to SVIP.
+[ ] Refreshing the confirmation page does not duplicate the upgrade.
+[ ] The Stripe webhook receives the upgrade Checkout Session.
 ```
 
 ## Recommended Routine
