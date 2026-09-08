@@ -1,4 +1,11 @@
-import { eventDetails, formatCurrency, formatEventDate, getStripeReceiptUrl, getTicketTierById } from "@/lib/ticketing";
+import {
+  eventDetails,
+  formatCurrency,
+  formatEventDate,
+  getStripeReceiptUrl,
+  getTicketTierById,
+  getTicketUpgradeUrl,
+} from "@/lib/ticketing";
 import type { getTicketOrderByCheckoutSessionId } from "@/lib/ticketing-store";
 
 const sender = "Joy Stage Productions <inquiries@joystageproductions.com>";
@@ -19,6 +26,7 @@ type CustomerReceiptEmailContentParams = {
   receiptUrlLabel: string;
   seatList: string;
   tierName: string;
+  upgradeUrl?: string;
 };
 
 function escapeHtml(value: string) {
@@ -41,6 +49,7 @@ function buildCustomerReceiptEmailContent({
   receiptUrlLabel,
   seatList,
   tierName,
+  upgradeUrl,
 }: CustomerReceiptEmailContentParams) {
   const testModeNotice = livemode
     ? ""
@@ -64,6 +73,7 @@ function buildCustomerReceiptEmailContent({
     "",
     `${receiptUrlLabel}:`,
     receiptUrl,
+    ...(upgradeUrl ? ["", "Upgrade eligible tickets to SVIP:", upgradeUrl] : []),
     "",
     "The ticket page includes the QR codes required for entry.",
     "",
@@ -126,6 +136,11 @@ function buildCustomerReceiptEmailContent({
         </a>
       </p>
       <p style="margin: 0 0 16px; color: #444;">If the button does not open, use this secure link:<br /><a href="${escapeHtml(receiptUrl)}">${escapeHtml(receiptUrl)}</a></p>
+      ${
+        upgradeUrl
+          ? `<p style="margin: 0 0 18px;"><a href="${escapeHtml(upgradeUrl)}" style="display: inline-block; padding: 12px 18px; border-radius: 999px; background: #f5b942; color: #111; text-decoration: none; font-weight: 700;">Upgrade to SVIP</a></p>`
+          : ""
+      }
       <p style="margin: 0 0 12px;">For event updates, follow us on Facebook: <a href="${escapeHtml(facebookPageUrl)}">${escapeHtml(facebookPageUrl)}</a></p>
       <p style="margin: 0 0 18px;">If you are excited about the show, please share our Facebook page with others.</p>
       <p style="margin: 0;">Thank you,<br />Joy Stage Productions</p>
@@ -171,6 +186,7 @@ export async function sendReservedSeatReceiptEmail({
     receiptUrlLabel: "Open or print your tickets here",
     seatList,
     tierName: tier.name,
+    upgradeUrl: tier.id === "svip" ? undefined : getTicketUpgradeUrl(order.checkoutSessionId),
   });
 
   const response = await fetch("https://api.resend.com/emails", {

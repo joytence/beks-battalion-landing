@@ -364,6 +364,10 @@ async function initializeSchema(sql: Sql) {
       sms_consent_source text,
       sms_consent_updated_at timestamptz,
       seat_assignment_mode text not null default 'reserved',
+      upgrade_checkout_session_id text unique,
+      upgrade_amount_total integer,
+      upgrade_status text not null default 'none',
+      upgrade_paid_at timestamptz,
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now(),
       paid_at timestamptz
@@ -428,6 +432,22 @@ async function initializeSchema(sql: Sql) {
   await sql`
     alter table ticket_orders
     add column if not exists sms_consent_updated_at timestamptz
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists upgrade_checkout_session_id text unique
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists upgrade_amount_total integer
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists upgrade_status text not null default 'none'
+  `;
+  await sql`
+    alter table ticket_orders
+    add column if not exists upgrade_paid_at timestamptz
   `;
   await sql`
     create table if not exists ticket_seat_holds (
@@ -1587,6 +1607,169 @@ export async function claimCustomerReceiptEmailSend(checkoutSessionId: string) {
   );
 }
 
+export async function reserveTicketUpgradeCheckout({
+  amountTotal,
+  checkoutSessionId,
+  orderId,
+}: {
+  amountTotal: number;
+  checkoutSessionId: string;
+  orderId: string;
+}) {
+  return withStore(async (sql) =>
+    sql.begin(async (tx) => {
+      const orders = await tx<{
+        order_status: OrderStatus;
+        ticket_quantity: number;
+        ticket_tier_id: TicketTierId;
+        upgrade_checkout_session_id: string | null;
+        upgrade_status: string;
+      }[]>`
+        select
+          order_status,
+          ticket_quantity,
+          ticket_tier_id,
+          upgrade_checkout_session_id,
+          coalesce(upgrade_status, 'none') as upgrade_status
+        from ticket_orders
+        where id = ${orderId}
+        for update
+      `;
+      const order = orders[0];
+
+      if (!order || order.order_status !== "paid") {
+        throw new TicketingStoreError("This ticket order is not eligible for an upgrade.", 404);
+      }
+
+      if (order.ticket_tier_id === "svip") {
+        throw new TicketingStoreError("This order is already SVIP.", 409);
+      }
+
+      if (order.upgrade_status === "paid") {
+        throw new TicketingStoreError("This order has already been upgraded.", 409);
+      }
+
+      if (order.upgrade_checkout_session_id && order.upgrade_status === "pending") {
+        throw new TicketingStoreError(
+          "An upgrade checkout is already in progress for this order. Please finish that checkout or wait for it to expire.",
+          409,
+        );
+      }
+
+      await tx`
+        update ticket_orders
+        set upgrade_checkout_session_id = ${checkoutSessionId},
+            upgrade_amount_total = ${amountTotal},
+            upgrade_status = 'pending',
+            updated_at = now()
+        where id = ${orderId}
+      `;
+
+      return {
+        ticketQuantity: order.ticket_quantity,
+        ticketTierId: order.ticket_tier_id,
+      };
+    }),
+  );
+}
+
+export async function syncTicketUpgradePaymentConfirmed(session: Stripe.Checkout.Session) {
+  if (session.metadata?.checkout_flow !== "ticket_upgrade") {
+    return;
+  }
+
+  const orderId = session.metadata?.order_id?.trim();
+
+  if (!orderId) {
+    throw new TicketingStoreError("Stripe upgrade session is missing order metadata.", 500);
+  }
+
+  return withStore(async (sql) =>
+    sql.begin(async (tx) => {
+      const orders = await tx<{
+        id: string;
+        amount_total: number | null;
+        order_status: OrderStatus;
+        ticket_tier_id: TicketTierId;
+        upgrade_checkout_session_id: string | null;
+        upgrade_status: string;
+      }[]>`
+        select
+          id,
+          amount_total,
+          order_status,
+          ticket_tier_id,
+          upgrade_checkout_session_id,
+          coalesce(upgrade_status, 'none') as upgrade_status
+        from ticket_orders
+        where id = ${orderId}
+        for update
+      `;
+      const order = orders[0];
+
+      if (!order || order.order_status !== "paid") {
+        throw new TicketingStoreError("The original ticket order could not be verified.", 404);
+      }
+
+      if (order.ticket_tier_id === "svip") {
+        await tx`
+          update ticket_orders
+          set upgrade_status = 'paid',
+              upgrade_paid_at = coalesce(upgrade_paid_at, now()),
+              updated_at = now()
+          where id = ${orderId}
+        `;
+        return;
+      }
+
+      if (
+        order.upgrade_checkout_session_id &&
+        order.upgrade_checkout_session_id !== session.id
+      ) {
+        throw new TicketingStoreError("This order has a different upgrade checkout in progress.", 409);
+      }
+
+      await tx`
+        update ticket_orders
+        set ticket_tier_id = 'svip',
+            amount_total = coalesce(amount_total, 0) + ${session.amount_total || 0},
+            upgrade_checkout_session_id = ${session.id},
+            upgrade_amount_total = ${session.amount_total || 0},
+            upgrade_status = 'paid',
+            upgrade_paid_at = coalesce(upgrade_paid_at, now()),
+            updated_at = now()
+        where id = ${orderId}
+      `;
+    }),
+  );
+}
+
+export async function syncTicketUpgradePaymentFailed(
+  session: Stripe.Checkout.Session,
+  status: "failed" | "expired" = "failed",
+) {
+  if (session.metadata?.checkout_flow !== "ticket_upgrade") {
+    return;
+  }
+
+  const orderId = session.metadata?.order_id?.trim();
+
+  if (!orderId) {
+    return;
+  }
+
+  await withStore(async (sql) => {
+    await sql`
+      update ticket_orders
+      set upgrade_status = ${status},
+          updated_at = now()
+      where id = ${orderId}
+        and upgrade_checkout_session_id = ${session.id}
+        and coalesce(upgrade_status, 'none') = 'pending'
+    `;
+  });
+}
+
 export async function markCustomerReceiptEmailSent(orderId: string) {
   return withStore(async (sql) => {
     await sql`
@@ -1940,8 +2123,17 @@ export async function syncReservedSeatPaymentConfirmed(session: Stripe.Checkout.
 
   return withStore(async (sql) =>
     sql.begin(async (tx) => {
-      const orders = await tx<{ id: string; order_status: OrderStatus }[]>`
-        select id, order_status
+      const orders = await tx<{
+        amount_total: number | null;
+        id: string;
+        order_status: OrderStatus;
+        upgrade_status: string;
+      }[]>`
+        select
+          id,
+          order_status,
+          amount_total,
+          coalesce(upgrade_status, 'none') as upgrade_status
         from ticket_orders
         where id = ${orderId}
         for update
@@ -1963,7 +2155,10 @@ export async function syncReservedSeatPaymentConfirmed(session: Stripe.Checkout.
             purchaser_email = ${getStripePurchaserEmail(session)},
             purchaser_phone = ${getStripePurchaserPhone(session)},
             currency = ${session.currency || "usd"},
-            amount_total = ${session.amount_total || 0},
+            amount_total = case
+              when ${order.upgrade_status} = 'paid' then amount_total
+              else ${session.amount_total || 0}
+            end,
             order_status = 'paid',
             paid_at = now(),
             updated_at = now()

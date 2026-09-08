@@ -3,6 +3,7 @@ import styles from "../ticketing.module.css";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import {
   getOrderTicketsByCheckoutSessionId,
+  getTicketOrderByCheckoutSessionId,
   getTicketOrderById,
   isTicketingDatabaseConfigured,
 } from "@/lib/ticketing-store";
@@ -48,7 +49,7 @@ export default async function TicketVerifyPage({ searchParams }: VerifyPageProps
     );
   }
 
-  const tier = getTicketTierById(parsed.tierId);
+  const parsedTier = getTicketTierById(parsed.tierId);
   if (adminIssuedOrderId) {
     if (!isTicketingDatabaseConfigured()) {
       return (
@@ -72,7 +73,7 @@ export default async function TicketVerifyPage({ searchParams }: VerifyPageProps
       !order ||
       !currentTicket ||
       currentTicket.ticketStatus !== "active" ||
-      !tier ||
+      !parsedTier ||
       order.orderStatus !== "paid" ||
       order.eventSlug !== eventDetails.slug ||
       order.ticketTierId !== parsed.tierId ||
@@ -121,7 +122,7 @@ export default async function TicketVerifyPage({ searchParams }: VerifyPageProps
             </div>
             <div className={styles.scanMetaItem}>
               <span className={styles.ticketLabel}>Tier</span>
-              <strong>{tier.name}</strong>
+              <strong>{parsedTier.name}</strong>
             </div>
             <div className={styles.scanMetaItem}>
               <span className={styles.ticketLabel}>Admission Value</span>
@@ -172,6 +173,12 @@ export default async function TicketVerifyPage({ searchParams }: VerifyPageProps
   const checkoutFlow = getCheckoutFlow(session.metadata?.checkout_flow);
   const quantity = Number(session.metadata?.ticket_quantity || "0");
   const assignmentFieldLabel = getTicketAssignmentFieldLabel(checkoutFlow);
+  const persistedOrder =
+    isTicketingDatabaseConfigured() && checkoutFlow === "reserved_seat"
+      ? await getTicketOrderByCheckoutSessionId(parsed.sessionId)
+      : null;
+  const effectiveTierId = persistedOrder?.ticketTierId || session.metadata?.ticket_tier_id || "";
+  const tier = getTicketTierById(effectiveTierId);
   const persistedTickets =
     isTicketingDatabaseConfigured() && checkoutFlow === "reserved_seat"
       ? await getOrderTicketsByCheckoutSessionId(parsed.sessionId)
@@ -181,18 +188,18 @@ export default async function TicketVerifyPage({ searchParams }: VerifyPageProps
     persistedTickets.find((ticket) => ticket.ticketIndex === parsed.ticketIndex) || null;
   const currentTicketAssignment = currentTicket?.seatLabel || parsed.seatLabel;
   const paid = session.payment_status === "paid";
-  const purchaserName = session.customer_details?.name?.trim() || "Guest";
-  const purchaserEmail = session.customer_details?.email?.trim() || "";
+  const purchaserName = persistedOrder?.purchaserName || session.customer_details?.name?.trim() || "Guest";
+  const purchaserEmail = persistedOrder?.purchaserEmail || session.customer_details?.email?.trim() || "";
   const amountTotal =
-    session.amount_total || (tier ? tier.priceCents * Math.max(quantity, 1) : 0);
+    persistedOrder?.amountTotal || session.amount_total || (tier ? tier.priceCents * Math.max(quantity, 1) : 0);
   const currency = session.currency || "usd";
   const valid =
     paid &&
     session.metadata?.event_slug === eventDetails.slug &&
-    session.metadata?.ticket_tier_id === parsed.tierId &&
+    effectiveTierId === parsed.tierId &&
     quantity >= parsed.ticketIndex &&
     (!requiresPersistedTicket || Boolean(currentTicket && currentTicket.ticketStatus === "active")) &&
-    Boolean(tier);
+    Boolean(tier && parsedTier);
 
   if (!valid || !tier) {
     return (

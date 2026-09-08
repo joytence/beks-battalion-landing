@@ -18,6 +18,7 @@ import {
   claimAdminSaleNotificationEmailSend,
   claimCustomerReceiptEmailSend,
   claimCustomerReceiptSmsSend,
+  getTicketOrderByCheckoutSessionId,
   getOrderTicketsByCheckoutSessionId,
   isTicketingDatabaseConfigured,
   markAdminSaleNotificationEmailFailed,
@@ -38,6 +39,7 @@ import {
   getCheckoutFlow,
   getSiteUrl,
   parseStripeReceiptAccessToken,
+  getTicketUpgradeUrl,
   getTicketAssignmentFieldLabel,
   getTicketAssignmentLabel,
   getTicketTierById,
@@ -115,7 +117,12 @@ export default async function TicketConfirmationPage({
   const ticketTierId = session.metadata?.ticket_tier_id || "";
   const seatLabels = parseSeatLabels(session.metadata?.seat_labels || "");
   const quantity = seatLabels.length || Number(session.metadata?.ticket_quantity || "0");
-  const tier = getTicketTierById(ticketTierId);
+  const persistedOrder =
+    isTicketingDatabaseConfigured() && checkoutFlow === "reserved_seat"
+      ? await getTicketOrderByCheckoutSessionId(session.id)
+      : null;
+  const effectiveTicketTierId = persistedOrder?.ticketTierId || ticketTierId;
+  const tier = getTicketTierById(effectiveTicketTierId);
 
   if (session.payment_status !== "paid" || !tier || quantity < 1) {
     return (
@@ -266,6 +273,8 @@ export default async function TicketConfirmationPage({
       };
     }),
   );
+  const upgradeUrl =
+    checkoutFlow === "reserved_seat" && tier.id !== "svip" ? getTicketUpgradeUrl(session.id) : "";
 
   const purchaseDataLayerPayload = {
     event: "stripe_checkout_purchase_confirmed",
@@ -324,6 +333,11 @@ export default async function TicketConfirmationPage({
         {emailDeliveryNotice ? <div className={styles.notice}>{emailDeliveryNotice}</div> : null}
         <div className={styles.statusActions}>
           <PrintTicketButton />
+          {upgradeUrl ? (
+            <a className={styles.secondaryButton} href={upgradeUrl}>
+              Upgrade to SVIP
+            </a>
+          ) : null}
           <a className={styles.secondaryButton} href="/tickets">
             Buy More Tickets
           </a>

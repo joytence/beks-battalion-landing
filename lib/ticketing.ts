@@ -130,6 +130,13 @@ type StripeReceiptAccessPayload = {
   version: 1;
 };
 
+type TicketUpgradeAccessPayload = {
+  eventSlug: string;
+  kind: "ticket_upgrade";
+  sessionId: string;
+  version: 1;
+};
+
 type SeatBlockBlueprint = {
   blockedLabels: string[];
   blockLabel: string;
@@ -956,6 +963,66 @@ export function getStripeReceiptPath(sessionId: string) {
 
 export function getStripeReceiptUrl(sessionId: string) {
   return `${getSiteUrl()}${getStripeReceiptPath(sessionId)}`;
+}
+
+export function createTicketUpgradeAccessToken(sessionId: string) {
+  const body = Buffer.from(
+    JSON.stringify({
+      eventSlug: eventDetails.slug,
+      kind: "ticket_upgrade",
+      sessionId,
+      version: 1,
+    } satisfies TicketUpgradeAccessPayload),
+  ).toString("base64url");
+  const signature = signPayload(body);
+  return `${body}.${signature}`;
+}
+
+export function parseTicketUpgradeAccessToken(token: string) {
+  const [body, signature] = token.split(".");
+
+  if (!body || !signature) {
+    return null;
+  }
+
+  const expected = signPayload(body);
+  const signatureBytes = Buffer.from(signature);
+  const expectedBytes = Buffer.from(expected);
+
+  if (
+    signatureBytes.length !== expectedBytes.length ||
+    !crypto.timingSafeEqual(signatureBytes, expectedBytes)
+  ) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(body, "base64url").toString("utf8"),
+    ) as TicketUpgradeAccessPayload;
+
+    if (
+      parsed.version !== 1 ||
+      parsed.kind !== "ticket_upgrade" ||
+      parsed.eventSlug !== eventDetails.slug ||
+      !parsed.sessionId?.trim()
+    ) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function getTicketUpgradePath(sessionId: string) {
+  const accessToken = createTicketUpgradeAccessToken(sessionId);
+  return `/tickets/upgrade?access=${encodeURIComponent(accessToken)}`;
+}
+
+export function getTicketUpgradeUrl(sessionId: string) {
+  return `${getSiteUrl()}${getTicketUpgradePath(sessionId)}`;
 }
 
 export function parseSignedTicketToken(token: string) {

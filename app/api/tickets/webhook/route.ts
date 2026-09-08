@@ -24,6 +24,8 @@ import {
   syncReservedSeatCheckoutExpired,
   syncReservedSeatPaymentConfirmed,
   syncReservedSeatPaymentFailed,
+  syncTicketUpgradePaymentConfirmed,
+  syncTicketUpgradePaymentFailed,
   TicketingStoreError,
 } from "@/lib/ticketing-store";
 
@@ -100,6 +102,22 @@ export async function POST(request: Request) {
         break;
       }
 
+      if (session.metadata?.checkout_flow === "ticket_upgrade") {
+        try {
+          await syncTicketUpgradePaymentConfirmed(session);
+        } catch (error) {
+          if (error instanceof TicketingStoreError) {
+            return NextResponse.json({ message: error.message }, { status: error.status });
+          }
+
+          return NextResponse.json(
+            { message: error instanceof Error ? error.message : "Ticket upgrade fulfillment failed." },
+            { status: 500 },
+          );
+        }
+        break;
+      }
+
       try {
         await syncReservedSeatPaymentConfirmed(session);
         await sendClaimedStripePurchaseMetaEvent(session, event.created, "stripe_webhook");
@@ -168,6 +186,11 @@ export async function POST(request: Request) {
     case "checkout.session.async_payment_failed": {
       const session = event.data.object as Stripe.Checkout.Session;
 
+      if (session.metadata?.checkout_flow === "ticket_upgrade") {
+        await syncTicketUpgradePaymentFailed(session);
+        break;
+      }
+
       await syncReservedSeatPaymentFailed(session);
 
       console.warn("Stripe ticket payment failed", {
@@ -179,6 +202,11 @@ export async function POST(request: Request) {
     }
     case "checkout.session.expired": {
       const session = event.data.object as Stripe.Checkout.Session;
+
+      if (session.metadata?.checkout_flow === "ticket_upgrade") {
+        await syncTicketUpgradePaymentFailed(session, "expired");
+        break;
+      }
 
       await syncReservedSeatCheckoutExpired(session);
       break;
