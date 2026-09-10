@@ -1501,10 +1501,16 @@ export async function findPaidTicketOrders(searchTerm: string, limit = 10) {
       limit ${clampedLimit}
     `;
 
-    return getTicketOrdersByIdsUsingSql(
+    const orders = await getTicketOrdersByIdsUsingSql(
       sql,
       matchedOrders.map((order) => order.id),
     );
+
+    // Recovery actions must show the seats that remain valid, not canceled seat history.
+    return orders.map((order) => ({
+      ...order,
+      tickets: order.tickets.filter((ticket) => ticket.ticketStatus === "active"),
+    }));
   });
 }
 
@@ -1520,10 +1526,15 @@ export async function listRecentPaidTicketOrders(limit = 10) {
       limit ${clampedLimit}
     `;
 
-    return getTicketOrdersByIdsUsingSql(
+    const orders = await getTicketOrdersByIdsUsingSql(
       sql,
       recentOrders.map((order) => order.id),
     );
+
+    return orders.map((order) => ({
+      ...order,
+      tickets: order.tickets.filter((ticket) => ticket.ticketStatus === "active"),
+    }));
   });
 }
 
