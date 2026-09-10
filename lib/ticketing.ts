@@ -4,10 +4,11 @@ const MAX_TICKETS_PER_ORDER = 50;
 
 export const eventDetails = {
   city: "San Diego",
-  dateIso: "2026-09-13T17:30:00-07:00",
-  dateLabel: "Sep 13, 2026",
+  dateIso: "2026-09-13T16:00:00-07:00",
+  dateLabel: "Sep 13, 2026 | 4:00 PM-7:30 PM PDT",
   name: "Beks Battalion",
   slug: "beks-battalion",
+  timeLabel: "4:00 PM-7:30 PM PDT",
   venue: "Otay Ranch High School, Chula Vista",
   venueAddress: {
     city: "Chula Vista",
@@ -580,16 +581,15 @@ export function formatCurrency(cents: number, currency = "usd") {
 }
 
 export function formatEventDate(isoDate: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  const date = new Intl.DateTimeFormat("en-US", {
     day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
     month: "long",
     timeZone: "America/Los_Angeles",
-    timeZoneName: "short",
     weekday: "long",
     year: "numeric",
   }).format(new Date(isoDate));
+
+  return `${date} | ${eventDetails.timeLabel}`;
 }
 
 export function getRequestOrigin(request: Request) {
