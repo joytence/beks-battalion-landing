@@ -1483,8 +1483,10 @@ export async function findPaidTicketOrders(searchTerm: string, limit = 10) {
       where ticket_orders.event_slug = ${eventDetails.slug}
         and ticket_orders.order_status = 'paid'
         and (
-          upper(coalesce(ticket_tickets.seat_label, '')) = ${normalizedSearchUpper}
-          or upper(coalesce(ticket_tickets.original_seat_label, '')) = ${normalizedSearchUpper}
+          (
+            ticket_tickets.ticket_status = 'active'
+            and upper(coalesce(ticket_tickets.seat_label, '')) = ${normalizedSearchUpper}
+          )
           or ticket_orders.id::text = ${normalizedSearchTerm}
           or coalesce(ticket_orders.checkout_session_id, '') = ${normalizedSearchTerm}
           or lower(coalesce(ticket_orders.purchaser_email, '')) = ${normalizedSearchLower}
