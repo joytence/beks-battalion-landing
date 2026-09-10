@@ -1250,6 +1250,7 @@ export async function updateTicketOrderPurchaserEmail(orderId: string, purchaser
         ticket_tickets.ticket_status as "ticketStatus"
       from ticket_tickets
       where ticket_tickets.order_id = ${orderId}
+        and ticket_tickets.ticket_status = 'active'
       order by ticket_tickets.ticket_index asc
     `;
 
@@ -1310,6 +1311,7 @@ export async function updateTicketOrderPurchaserPhone(orderId: string, purchaser
         ticket_tickets.ticket_status as "ticketStatus"
       from ticket_tickets
       where ticket_tickets.order_id = ${orderId}
+        and ticket_tickets.ticket_status = 'active'
       order by ticket_tickets.ticket_index asc
     `;
 
@@ -1371,6 +1373,7 @@ async function getTicketOrdersByIdsUsingSql(sql: Sql | TransactionSql, orderIds:
         ticket_tickets.ticket_status as "ticketStatus"
       from ticket_tickets
       where ticket_tickets.order_id in ${sql(orderIds)}
+        and ticket_tickets.ticket_status = 'active'
       order by ticket_tickets.order_id asc, ticket_tickets.ticket_index asc
   `;
 
@@ -1453,6 +1456,7 @@ export async function getTicketOrderByCheckoutSessionId(checkoutSessionId: strin
         ticket_tickets.ticket_status as "ticketStatus"
       from ticket_tickets
       where ticket_tickets.order_id = ${order.id}
+        and ticket_tickets.ticket_status = 'active'
       order by ticket_tickets.ticket_index asc
     `;
 
