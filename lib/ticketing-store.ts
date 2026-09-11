@@ -72,6 +72,7 @@ type TransferPaidTicketOrderParams = {
   purchaserEmail?: string;
   purchaserName: string;
   purchaserPhone?: string;
+  seatLabels: string[];
 };
 
 type IssueAdminTicketsParams = {
@@ -2483,12 +2484,14 @@ export async function transferPaidTicketOrder({
   purchaserEmail,
   purchaserName,
   purchaserPhone,
+  seatLabels,
 }: TransferPaidTicketOrderParams) {
   return withStore(async (sql) =>
     sql.begin(async (tx) => {
       const nextName = purchaserName.trim();
       const nextEmail = purchaserEmail?.trim() || "";
       const nextPhone = purchaserPhone?.trim() || "";
+      const selectedSeats = normalizeSeatLabels(seatLabels);
 
       if (!checkoutSessionId.trim() || !nextName) {
         throw new TicketingStoreError("A paid order and new recipient name are required.", 400);
@@ -2498,8 +2501,18 @@ export async function transferPaidTicketOrder({
         throw new TicketingStoreError("Provide an email address or phone number for the new recipient.", 400);
       }
 
-      const orders = await tx<{ id: string; purchaser_name: string }[]>`
-        select id, purchaser_name
+      if (selectedSeats.length < 1) {
+        throw new TicketingStoreError("Choose at least one paid seat to transfer.", 400);
+      }
+
+      const orders = await tx<{
+        currency: string | null;
+        id: string;
+        paid_at: Date | null;
+        purchaser_name: string;
+        ticket_tier_id: TicketTierId;
+      }[]>`
+        select currency, id, paid_at, purchaser_name, ticket_tier_id
         from ticket_orders
         where checkout_session_id = ${checkoutSessionId.trim()}
           and event_slug = ${eventDetails.slug}
@@ -2517,48 +2530,105 @@ export async function transferPaidTicketOrder({
         from ticket_tickets
         where order_id = ${order.id}
           and ticket_status = 'active'
+          and seat_label in ${tx(selectedSeats)}
         for update
       `;
 
-      if (activeTickets.length < 1) {
-        throw new TicketingStoreError("This paid order has no active tickets to transfer.", 409);
+      if (activeTickets.length !== selectedSeats.length) {
+        throw new TicketingStoreError("One or more selected seats are not active on this paid order.", 409);
       }
+
+      const transferredOrderId = randomUUID();
+      const transferredCheckoutSessionId = `admin_issued_${transferredOrderId}`;
 
       await tx`
         update ticket_orders
-        set purchaser_name = ${nextName},
-            purchaser_email = ${nextEmail},
-            purchaser_phone = ${nextPhone},
-            receipt_access_version = coalesce(receipt_access_version, 1) + 1,
-            updated_at = now()
+        set updated_at = now()
         where id = ${order.id}
       `;
 
       await tx`
-        update ticket_tickets
-        set access_version = coalesce(access_version, 1) + 1,
-            updated_at = now()
-        where id in ${tx(activeTickets.map((ticket) => ticket.id))}
+        insert into ticket_orders (
+          id,
+          checkout_session_id,
+          event_slug,
+          checkout_flow,
+          ticket_tier_id,
+          ticket_quantity,
+          currency,
+          amount_total,
+          purchaser_name,
+          purchaser_email,
+          purchaser_phone,
+          order_status,
+          seat_assignment_mode,
+          paid_at
+        )
+        values (
+          ${transferredOrderId},
+          ${transferredCheckoutSessionId},
+          ${eventDetails.slug},
+          'admin_transfer',
+          ${order.ticket_tier_id},
+          ${activeTickets.length},
+          ${order.currency || 'usd'},
+          0,
+          ${nextName},
+          ${nextEmail},
+          ${nextPhone},
+          'paid',
+          'reserved',
+          ${order.paid_at || new Date()}
+        )
       `;
 
       await tx`
+        update ticket_seat_holds
+        set order_id = ${transferredOrderId},
+            checkout_session_id = ${transferredCheckoutSessionId},
+            updated_at = now()
+        where order_id = ${order.id}
+          and seat_label in ${tx(selectedSeats)}
+          and status = 'converted'
+      `;
+
+      for (const [index, ticket] of activeTickets.entries()) {
+        await tx`
+          update ticket_tickets
+          set order_id = ${transferredOrderId},
+              ticket_index = ${index + 1},
+              access_version = coalesce(access_version, 1) + 1,
+              updated_at = now()
+          where id = ${ticket.id}
+        `;
+      }
+
+      for (const ticket of activeTickets) {
+        await tx`
         insert into ticket_admin_audit (
           id,
           actor_label,
           action_type,
           order_id,
+          ticket_id,
+          seat_label_from,
+          seat_label_to,
           notes
         )
         values (
           ${randomUUID()},
           ${actorLabel.trim() || "Admin Transfer"},
-          'paid_ticket_transferred',
+          'paid_ticket_seat_transferred',
           ${order.id},
+          ${ticket.id},
+          ${ticket.seat_label},
+          ${ticket.seat_label},
           ${`Transferred from ${order.purchaser_name || "previous recipient"} to ${nextName}. ${notes?.trim() || ""}`.trim()}
         )
       `;
+      }
 
-      const transferredOrder = await getTicketOrderByIdUsingSql(tx, order.id);
+      const transferredOrder = await getTicketOrderByIdUsingSql(tx, transferredOrderId);
 
       if (!transferredOrder) {
         throw new TicketingStoreError("The paid ticket transfer could not be completed.", 500);

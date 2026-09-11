@@ -44,6 +44,7 @@ type PaidTicketActionResponse = {
   purchaserName?: string;
   purchaserPhone?: string;
   receiptUrl?: string;
+  transferCheckoutSessionId?: string;
 };
 
 type ContactDrafts = Record<
@@ -52,6 +53,16 @@ type ContactDrafts = Record<
     email: string;
     name: string;
     phone: string;
+  }
+>;
+
+type TransferDrafts = Record<
+  string,
+  {
+    email: string;
+    name: string;
+    phone: string;
+    seatLabels: string[];
   }
 >;
 
@@ -102,6 +113,13 @@ function buildContactDrafts(orders: RecoveryOrder[]) {
   }, {});
 }
 
+function buildTransferDrafts(orders: RecoveryOrder[]) {
+  return orders.reduce<TransferDrafts>((drafts, order) => {
+    drafts[order.checkoutSessionId] = { email: "", name: "", phone: "", seatLabels: [] };
+    return drafts;
+  }, {});
+}
+
 function isAdminIssuedOrder(order: RecoveryOrder) {
   return order.checkoutSessionId.startsWith("admin_issued_");
 }
@@ -114,6 +132,7 @@ export function AdminPaidRecoveryTools() {
   const [status, setStatus] = useState("");
   const [processingActionKey, setProcessingActionKey] = useState("");
   const [contactDrafts, setContactDrafts] = useState<ContactDrafts>({});
+  const [transferDrafts, setTransferDrafts] = useState<TransferDrafts>({});
   const [actionMessages, setActionMessages] = useState<Record<string, string>>({});
 
   async function loadOrders(options: { query?: string; recent?: boolean }) {
@@ -144,10 +163,12 @@ export function AdminPaidRecoveryTools() {
       const nextOrders = payload.orders || [];
       setOrders(nextOrders);
       setContactDrafts(buildContactDrafts(nextOrders));
+      setTransferDrafts(buildTransferDrafts(nextOrders));
       setStatus(payload.message || "");
     } catch (caughtError) {
       setOrders([]);
       setContactDrafts({});
+      setTransferDrafts({});
       setError(
         caughtError instanceof Error ? caughtError.message : "Paid ticket recovery lookup failed.",
       );
@@ -197,6 +218,36 @@ export function AdminPaidRecoveryTools() {
         phone: updates.purchaserPhone ?? current[checkoutSessionId]?.phone ?? "",
       },
     }));
+  }
+
+  function updateTransferDraft(
+    checkoutSessionId: string,
+    field: "email" | "name" | "phone",
+    value: string,
+  ) {
+    setTransferDrafts((current) => ({
+      ...current,
+      [checkoutSessionId]: {
+        email: current[checkoutSessionId]?.email || "",
+        name: current[checkoutSessionId]?.name || "",
+        phone: current[checkoutSessionId]?.phone || "",
+        seatLabels: current[checkoutSessionId]?.seatLabels || [],
+        [field]: value,
+      },
+    }));
+  }
+
+  function toggleTransferSeat(checkoutSessionId: string, seatLabel: string) {
+    setTransferDrafts((current) => {
+      const draft = current[checkoutSessionId] || { email: "", name: "", phone: "", seatLabels: [] };
+      const selected = new Set(draft.seatLabels);
+      if (selected.has(seatLabel)) {
+        selected.delete(seatLabel);
+      } else {
+        selected.add(seatLabel);
+      }
+      return { ...current, [checkoutSessionId]: { ...draft, seatLabels: Array.from(selected) } };
+    });
   }
 
   async function resend(order: RecoveryOrder, channel: "email" | "text") {
@@ -270,13 +321,9 @@ export function AdminPaidRecoveryTools() {
 
   async function transfer(order: RecoveryOrder) {
     const checkoutSessionId = order.checkoutSessionId;
-    const draft = contactDrafts[checkoutSessionId] || {
-      email: order.purchaserEmail || "",
-      name: order.purchaserName || "",
-      phone: order.purchaserPhone || "",
-    };
+    const draft = transferDrafts[checkoutSessionId] || { email: "", name: "", phone: "", seatLabels: [] };
 
-    if (!window.confirm(`Transfer the entire paid order for ${order.tickets.map((ticket) => ticket.seatLabel).join(", ")} to ${draft.name || "the new recipient"}? The previous receipt link and QR codes will stop working. The Stripe payment will not be changed.`)) {
+    if (!window.confirm(`Transfer ${draft.seatLabels.join(", ")} to ${draft.name || "the new recipient"}? Only those ticket links and QR codes will be replaced. The Stripe payment will not be changed.`)) {
       return;
     }
 
@@ -291,6 +338,7 @@ export function AdminPaidRecoveryTools() {
           purchaserEmail: draft.email.trim(),
           purchaserName: draft.name.trim(),
           purchaserPhone: draft.phone.trim(),
+          seatLabels: draft.seatLabels,
         }),
         headers: buildAdminRequestHeaders({ "content-type": "application/json" }),
         method: "POST",
@@ -301,15 +349,9 @@ export function AdminPaidRecoveryTools() {
         throw new Error(payload.message || "Paid ticket transfer failed.");
       }
 
-      updateOrderContacts(checkoutSessionId, {
-        purchaserEmail: payload.purchaserEmail,
-        purchaserName: payload.purchaserName,
-        purchaserPhone: payload.purchaserPhone,
-      });
-      setActionMessages((current) => ({
-        ...current,
-        [checkoutSessionId]: `${payload.message || "Paid ticket transferred."} Send the replacement ticket using Email or Text below.`,
-      }));
+      setLookupQuery(payload.transferCheckoutSessionId || "");
+      await loadOrders({ query: payload.transferCheckoutSessionId || "" });
+      setStatus(`${payload.message || "Paid ticket transferred."} Send the replacement ticket using Email or Text.`);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "Paid ticket transfer failed.");
     } finally {
@@ -376,6 +418,12 @@ export function AdminPaidRecoveryTools() {
           name: order.purchaserName || "",
           phone: order.purchaserPhone || "",
         };
+        const transferDraft = transferDrafts[order.checkoutSessionId] || {
+          email: "",
+          name: "",
+          phone: "",
+          seatLabels: [],
+        };
         const seatList = order.tickets.map((ticket) => ticket.seatLabel).join(", ");
         const emailKey = `${order.checkoutSessionId}:email`;
         const textKey = `${order.checkoutSessionId}:text`;
@@ -431,49 +479,62 @@ export function AdminPaidRecoveryTools() {
                 <input
                   {...adminInputProps}
                   className={styles.textInput}
-                  onChange={(event) => updateDraft(order.checkoutSessionId, "name", event.target.value)}
+                  onChange={(event) => updateTransferDraft(order.checkoutSessionId, "name", event.target.value)}
                   placeholder="Recipient name"
                   type="text"
-                  value={draft.name}
+                  value={transferDraft.name}
                 />
               </label>
               <label className={styles.field}>
-                <span>Recovery Email</span>
+                <span>New Recipient Email</span>
                 <input
                   {...adminInputProps}
                   className={styles.textInput}
                   onChange={(event) =>
-                    updateDraft(order.checkoutSessionId, "email", event.target.value)
+                    updateTransferDraft(order.checkoutSessionId, "email", event.target.value)
                   }
                   placeholder="recipient@example.com"
                   type="email"
-                  value={draft.email}
+                  value={transferDraft.email}
                 />
               </label>
 
               <label className={styles.field}>
-                <span>Recovery Phone</span>
+                <span>New Recipient Phone</span>
                 <input
                   {...adminInputProps}
                   className={styles.textInput}
                   onChange={(event) =>
-                    updateDraft(order.checkoutSessionId, "phone", event.target.value)
+                    updateTransferDraft(order.checkoutSessionId, "phone", event.target.value)
                   }
                   placeholder="+1 555 555 5555"
                   type="text"
-                  value={draft.phone}
+                  value={transferDraft.phone}
                 />
               </label>
+            </div>
+
+            <div className={styles.notice}>
+              <strong>Select only the seats to transfer:</strong>{" "}
+              {order.tickets.map((ticket) => (
+                <label key={ticket.id} style={{ marginLeft: "12px" }}>
+                  <input
+                    checked={transferDraft.seatLabels.includes(ticket.seatLabel)}
+                    onChange={() => toggleTransferSeat(order.checkoutSessionId, ticket.seatLabel)}
+                    type="checkbox"
+                  /> {ticket.seatLabel}
+                </label>
+              ))}
             </div>
 
             <div className={styles.adminActionRow}>
               <button
                 className={styles.secondaryButton}
-                disabled={processingActionKey === transferKey || !draft.name.trim() || (!draft.email.trim() && !draft.phone.trim())}
+                disabled={processingActionKey === transferKey || !transferDraft.name.trim() || (!transferDraft.email.trim() && !transferDraft.phone.trim()) || transferDraft.seatLabels.length < 1}
                 onClick={() => transfer(order)}
                 type="button"
               >
-                {processingActionKey === transferKey ? "Transferring..." : "Transfer Paid Order"}
+                {processingActionKey === transferKey ? "Transferring..." : "Transfer Selected Seats"}
               </button>
               <a className={styles.secondaryButton} href={order.receiptUrl}>
                 Open Printable Ticket

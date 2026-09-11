@@ -17,6 +17,7 @@ type TransferPayload = {
   purchaserEmail?: unknown;
   purchaserName?: unknown;
   purchaserPhone?: unknown;
+  seatLabels?: unknown;
 };
 
 function clean(value: unknown) {
@@ -39,6 +40,9 @@ export async function POST(request: Request) {
 
     const payload = (await request.json().catch(() => ({}))) as TransferPayload;
     const purchaserEmail = clean(payload.purchaserEmail);
+    const seatLabels = Array.isArray(payload.seatLabels)
+      ? payload.seatLabels.filter((seat): seat is string => typeof seat === "string")
+      : [];
 
     if (purchaserEmail && !isValidEmail(purchaserEmail)) {
       return NextResponse.json({ message: "The new recipient email is invalid." }, { status: 400 });
@@ -51,6 +55,7 @@ export async function POST(request: Request) {
       purchaserEmail,
       purchaserName: clean(payload.purchaserName),
       purchaserPhone: clean(payload.purchaserPhone),
+      seatLabels,
     });
 
     return NextResponse.json({
@@ -58,6 +63,7 @@ export async function POST(request: Request) {
       purchaserEmail: order.purchaserEmail,
       purchaserName: order.purchaserName,
       purchaserPhone: order.purchaserPhone,
+      transferCheckoutSessionId: order.checkoutSessionId,
     });
   } catch (error) {
     const status = error instanceof TicketingStoreError ? error.status : 500;
