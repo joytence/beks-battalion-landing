@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { adminTextAreaProps } from "../adminFormProps";
 import { buildAdminRequestHeaders } from "../adminRequestHeaders";
 import styles from "../../ticketing.module.css";
@@ -9,6 +9,12 @@ type SendResult = {
   failedCount?: number;
   message?: string;
   sentCount?: number;
+};
+
+type DistributionList = {
+  id: string;
+  name: string;
+  recipientPhones: string[];
 };
 
 function parseRecipients(value: string) {
@@ -28,11 +34,56 @@ export function AdminAnnouncementTools() {
   const [message, setMessage] = useState("");
   const [recipientInput, setRecipientInput] = useState("");
   const [result, setResult] = useState<SendResult | null>(null);
+  const [distributionName, setDistributionName] = useState("");
+  const [distributionLists, setDistributionLists] = useState<DistributionList[]>([]);
+  const [listStatus, setListStatus] = useState("");
+  const [savingList, setSavingList] = useState(false);
   const [sending, setSending] = useState(false);
   const recipients = useMemo(() => parseRecipients(recipientInput), [recipientInput]);
   const preview = message.trim()
     ? `Joy Stage Productions: ${message.trim()}\nReply STOP to opt out.`
     : "Your message preview will appear here.";
+
+  async function loadDistributionLists() {
+    const response = await fetch("/api/tickets/admin/announcement-lists", {
+      headers: buildAdminRequestHeaders(),
+    });
+    const payload = (await response.json()) as { lists?: DistributionList[]; message?: string };
+    if (!response.ok) throw new Error(payload.message || "Saved distributions could not be loaded.");
+    setDistributionLists(payload.lists || []);
+  }
+
+  useEffect(() => {
+    void loadDistributionLists().catch((caughtError) => {
+      setError(caughtError instanceof Error ? caughtError.message : "Saved distributions could not be loaded.");
+    });
+  }, []);
+
+  async function saveDistributionList() {
+    if (!distributionName.trim() || recipients.length < 1) {
+      setError("Add a distribution name and at least one recipient before saving.");
+      return;
+    }
+
+    setSavingList(true);
+    setError("");
+    setListStatus("");
+    try {
+      const response = await fetch("/api/tickets/admin/announcement-lists", {
+        body: JSON.stringify({ name: distributionName.trim(), recipientPhones: recipients }),
+        headers: buildAdminRequestHeaders({ "content-type": "application/json" }),
+        method: "POST",
+      });
+      const payload = (await response.json()) as { message?: string };
+      if (!response.ok) throw new Error(payload.message || "The distribution list could not be saved.");
+      await loadDistributionLists();
+      setListStatus(payload.message || "Distribution list saved.");
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "The distribution list could not be saved.");
+    } finally {
+      setSavingList(false);
+    }
+  }
 
   async function sendAnnouncement() {
     if (!confirmed || !message.trim() || recipients.length < 1) {
@@ -86,6 +137,56 @@ export function AdminAnnouncementTools() {
           value={recipientInput}
         />
       </label>
+
+      <div className={styles.adminFormGrid}>
+        <label className={styles.field}>
+          <span>Saved Distribution</span>
+          <select
+            className={styles.textInput}
+            defaultValue=""
+            onChange={(event) => {
+              const selected = distributionLists.find((list) => list.id === event.target.value);
+              if (selected) {
+                setRecipientInput(selected.recipientPhones.join("\n"));
+                setDistributionName(selected.name);
+                setListStatus(`Loaded ${selected.name}.`);
+              }
+            }}
+          >
+            <option value="">Choose a saved list</option>
+            {distributionLists.map((list) => (
+              <option key={list.id} value={list.id}>
+                {list.name} ({list.recipientPhones.length})
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className={styles.field}>
+          <span>Save This Distribution As</span>
+          <input
+            className={styles.textInput}
+            maxLength={80}
+            onChange={(event) => setDistributionName(event.target.value)}
+            placeholder="VIP guests, sponsor table, staff"
+            type="text"
+            value={distributionName}
+          />
+        </label>
+      </div>
+
+      <div className={styles.adminActionRow}>
+        <button
+          className={styles.secondaryButton}
+          disabled={savingList || !distributionName.trim() || recipients.length < 1}
+          onClick={saveDistributionList}
+          type="button"
+        >
+          {savingList ? "Saving Distribution..." : "Save Distribution"}
+        </button>
+      </div>
+
+      {listStatus ? <div className={styles.notice}>{listStatus}</div> : null}
 
       <div className={styles.selectionSummary}>
         <div className={styles.selectionCount}>

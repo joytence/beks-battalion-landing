@@ -103,6 +103,13 @@ export type AdminIssueAvailabilitySnapshot = {
   };
 };
 
+export type SmsDistributionList = {
+  id: string;
+  name: string;
+  recipientPhones: string[];
+  updatedAt: Date;
+};
+
 type TicketOrderRecord = {
   adminSaleEmailLockedAt: Date | null;
   adminSaleEmailSentAt: Date | null;
@@ -490,6 +497,15 @@ async function initializeSchema(sql: Sql) {
     )
   `;
   await sql`
+    create table if not exists ticket_sms_distribution_lists (
+      id uuid primary key,
+      name text not null unique,
+      recipient_phones text not null,
+      created_at timestamptz not null default now(),
+      updated_at timestamptz not null default now()
+    )
+  `;
+  await sql`
     create unique index if not exists ticket_active_seat_hold_idx
     on ticket_seat_holds (event_slug, seat_label)
     where status in ('blocked', 'converted', 'held')
@@ -505,6 +521,10 @@ async function initializeSchema(sql: Sql) {
   await sql`
     create index if not exists ticket_tickets_order_idx
     on ticket_tickets (order_id)
+  `;
+  await sql`
+    create index if not exists ticket_sms_distribution_lists_updated_idx
+    on ticket_sms_distribution_lists (updated_at desc)
   `;
 }
 
@@ -1518,6 +1538,58 @@ export async function findPaidTicketOrders(searchTerm: string, limit = 10) {
       ...order,
       tickets: order.tickets.filter((ticket) => ticket.ticketStatus === "active"),
     }));
+  });
+}
+
+function parseStoredDistributionPhones(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((phone): phone is string => typeof phone === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function listSmsDistributionLists() {
+  return withStore(async (sql) => {
+    const lists = await sql<{ id: string; name: string; recipientPhones: string; updatedAt: Date }[]>`
+      select id, name, recipient_phones as "recipientPhones", updated_at as "updatedAt"
+      from ticket_sms_distribution_lists
+      order by updated_at desc, name asc
+    `;
+
+    return lists.map((list) => ({
+      ...list,
+      recipientPhones: parseStoredDistributionPhones(list.recipientPhones),
+    }));
+  });
+}
+
+export async function saveSmsDistributionList({
+  name,
+  recipientPhones,
+}: {
+  name: string;
+  recipientPhones: string[];
+}) {
+  return withStore(async (sql) => {
+    const normalizedName = name.trim();
+    const normalizedPhones = Array.from(new Set(recipientPhones.map((phone) => phone.trim()).filter(Boolean)));
+    const lists = await sql<{ id: string; name: string; recipientPhones: string; updatedAt: Date }[]>`
+      insert into ticket_sms_distribution_lists (id, name, recipient_phones, updated_at)
+      values (${randomUUID()}, ${normalizedName}, ${JSON.stringify(normalizedPhones)}, now())
+      on conflict (name) do update
+      set recipient_phones = excluded.recipient_phones,
+          updated_at = now()
+      returning id, name, recipient_phones as "recipientPhones", updated_at as "updatedAt"
+    `;
+    const list = lists[0];
+
+    if (!list) {
+      throw new TicketingStoreError("The distribution list could not be saved.", 500);
+    }
+
+    return { ...list, recipientPhones: parseStoredDistributionPhones(list.recipientPhones) };
   });
 }
 
