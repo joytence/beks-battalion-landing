@@ -74,7 +74,7 @@ export async function POST(request: Request) {
         ...order,
         receiptUrl: order.checkoutSessionId.startsWith("admin_issued_")
           ? getAdminIssuedReceiptPath(order.id)
-          : getStripeReceiptPath(order.checkoutSessionId),
+          : getStripeReceiptPath(order.checkoutSessionId, order.receiptAccessVersion ?? 1),
       })),
     });
   } catch (error) {

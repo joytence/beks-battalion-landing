@@ -115,6 +115,28 @@ export default async function TicketConfirmationPage({
   const stripe = getStripe();
   const session = await stripe.checkout.sessions.retrieve(sessionId);
   const checkoutFlow = getCheckoutFlow(session.metadata?.checkout_flow);
+  const receiptOrder =
+    isTicketingDatabaseConfigured() && checkoutFlow === "reserved_seat"
+      ? await getTicketOrderByCheckoutSessionId(session.id)
+      : null;
+
+  if (
+    parsedAccess &&
+    receiptOrder &&
+    (parsedAccess.accessVersion ?? 1) !== (receiptOrder.receiptAccessVersion ?? 1)
+  ) {
+    return (
+      <main className={styles.receiptPage}>
+        <section className={styles.receiptStatusCard}>
+          <div className={styles.statusEyebrow}>Ticket access updated</div>
+          <h1 className={styles.statusTitle}>This ticket link is no longer active</h1>
+          <p className={styles.statusLead}>
+            Please use the replacement ticket link sent by Joy Stage Productions.
+          </p>
+        </section>
+      </main>
+    );
+  }
   const ticketTierId = session.metadata?.ticket_tier_id || "";
   const seatLabels = parseSeatLabels(session.metadata?.seat_labels || "");
   const quantity = seatLabels.length || Number(session.metadata?.ticket_quantity || "0");
@@ -231,10 +253,12 @@ export default async function TicketConfirmationPage({
   const ticketsToRender =
     activePersistedTickets.length > 0
       ? activePersistedTickets.map((ticket) => ({
+          accessVersion: ticket.accessVersion ?? 1,
           seatLabel: ticket.seatLabel,
           ticketIndex: ticket.ticketIndex,
         }))
       : Array.from({ length: quantity }).map((_, index) => ({
+          accessVersion: 1,
           seatLabel: seatLabels[index] || "Unassigned",
           ticketIndex: index + 1,
         }));
@@ -248,13 +272,14 @@ export default async function TicketConfirmationPage({
   });
 
   const tickets = await Promise.all(
-    ticketsToRender.map(async ({ seatLabel, ticketIndex }) => {
+    ticketsToRender.map(async ({ accessVersion, seatLabel, ticketIndex }) => {
       const assignmentLabel = getTicketAssignmentLabel(
         tier.name,
         seatLabel,
         checkoutFlow,
       );
       const token = createSignedTicketToken({
+        accessVersion,
         eventSlug: eventDetails.slug,
         issuedSource: "stripe",
         sessionId: session.id,

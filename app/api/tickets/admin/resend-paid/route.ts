@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         message: `Paid ticket email sent to ${order.purchaserEmail}.`,
         purchaserEmail: order.purchaserEmail,
-        receiptUrl: getStripeReceiptUrl(order.checkoutSessionId),
+        receiptUrl: getStripeReceiptUrl(order.checkoutSessionId, order.receiptAccessVersion ?? 1),
         seats: order.tickets.map((ticket) => ticket.seatLabel),
       });
     }

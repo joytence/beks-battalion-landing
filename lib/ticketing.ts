@@ -101,6 +101,7 @@ type TicketSeatChartOptions = {
 };
 
 export type SignedTicketPayload = {
+  accessVersion?: number;
   amountTotal?: number;
   currency?: string;
   eventSlug: string;
@@ -125,6 +126,7 @@ type AdminIssuedReceiptAccessPayload = {
 };
 
 type StripeReceiptAccessPayload = {
+  accessVersion?: number;
   eventSlug: string;
   kind: "stripe_receipt";
   sessionId: string;
@@ -908,12 +910,13 @@ export function getAdminIssuedReceiptUrl(orderId: string) {
   return `${getSiteUrl()}${getAdminIssuedReceiptPath(orderId)}`;
 }
 
-export function createStripeReceiptAccessToken(sessionId: string) {
+export function createStripeReceiptAccessToken(sessionId: string, accessVersion = 1) {
   const body = Buffer.from(
     JSON.stringify({
       eventSlug: eventDetails.slug,
       kind: "stripe_receipt",
       sessionId,
+      accessVersion,
       version: 1,
     } satisfies StripeReceiptAccessPayload),
   ).toString("base64url");
@@ -948,7 +951,9 @@ export function parseStripeReceiptAccessToken(token: string) {
       parsed.version !== 1 ||
       parsed.kind !== "stripe_receipt" ||
       parsed.eventSlug !== eventDetails.slug ||
-      !parsed.sessionId?.trim()
+      !parsed.sessionId?.trim() ||
+      (parsed.accessVersion !== undefined &&
+        (!Number.isInteger(parsed.accessVersion) || parsed.accessVersion < 1))
     ) {
       return null;
     }
@@ -959,13 +964,13 @@ export function parseStripeReceiptAccessToken(token: string) {
   }
 }
 
-export function getStripeReceiptPath(sessionId: string) {
-  const accessToken = createStripeReceiptAccessToken(sessionId);
+export function getStripeReceiptPath(sessionId: string, accessVersion = 1) {
+  const accessToken = createStripeReceiptAccessToken(sessionId, accessVersion);
   return `/tickets/confirmation?access=${encodeURIComponent(accessToken)}`;
 }
 
-export function getStripeReceiptUrl(sessionId: string) {
-  return `${getSiteUrl()}${getStripeReceiptPath(sessionId)}`;
+export function getStripeReceiptUrl(sessionId: string, accessVersion = 1) {
+  return `${getSiteUrl()}${getStripeReceiptPath(sessionId, accessVersion)}`;
 }
 
 export function createTicketUpgradeAccessToken(sessionId: string) {

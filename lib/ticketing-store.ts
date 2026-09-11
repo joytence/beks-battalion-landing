@@ -18,6 +18,7 @@ type OrderStatus = "canceled" | "expired" | "failed" | "paid" | "pending";
 type SeatHoldStatus = "blocked" | "converted" | "expired" | "held" | "released";
 type TicketStatus = "active" | "canceled";
 type TicketRecord = {
+  accessVersion?: number;
   id: string;
   orderId: string;
   originalSeatLabel: string;
@@ -62,6 +63,15 @@ type ReleasePaidSeatsParams = {
   actorLabel: string;
   notes?: string;
   seatLabels: string[];
+};
+
+type TransferPaidTicketOrderParams = {
+  actorLabel: string;
+  checkoutSessionId: string;
+  notes?: string;
+  purchaserEmail?: string;
+  purchaserName: string;
+  purchaserPhone?: string;
 };
 
 type IssueAdminTicketsParams = {
@@ -135,6 +145,7 @@ type TicketOrderRecord = {
   purchaserEmail: string;
   purchaserName: string;
   purchaserPhone: string;
+  receiptAccessVersion?: number;
   seatAssignmentMode: string;
   smsConsentOptIn?: boolean;
   ticketQuantity: number;
@@ -354,6 +365,7 @@ async function initializeSchema(sql: Sql) {
       purchaser_name text,
       purchaser_email text,
       purchaser_phone text,
+      receipt_access_version integer not null default 1,
       order_status text not null default 'pending',
       admin_sale_email_status text not null default 'pending',
       admin_sale_email_locked_at timestamptz,
@@ -457,6 +469,10 @@ async function initializeSchema(sql: Sql) {
     add column if not exists upgrade_paid_at timestamptz
   `;
   await sql`
+    alter table ticket_orders
+    add column if not exists receipt_access_version integer not null default 1
+  `;
+  await sql`
     create table if not exists ticket_seat_holds (
       id uuid primary key,
       order_id uuid not null references ticket_orders(id) on delete cascade,
@@ -477,11 +493,16 @@ async function initializeSchema(sql: Sql) {
       seat_label text not null,
       original_seat_label text not null,
       ticket_index integer not null,
+      access_version integer not null default 1,
       ticket_status text not null default 'active',
       created_at timestamptz not null default now(),
       updated_at timestamptz not null default now(),
       unique (order_id, ticket_index)
     )
+  `;
+  await sql`
+    alter table ticket_tickets
+    add column if not exists access_version integer not null default 1
   `;
   await sql`
     create table if not exists ticket_admin_audit (
@@ -1191,6 +1212,7 @@ export async function getOrderTicketsByCheckoutSessionId(checkoutSessionId: stri
         ticket_tickets.original_seat_label as "originalSeatLabel",
         ticket_tickets.seat_label as "seatLabel",
         ticket_tickets.ticket_index as "ticketIndex",
+        coalesce(ticket_tickets.access_version, 1) as "accessVersion",
         ticket_tickets.ticket_status as "ticketStatus",
         ticket_orders.checkout_flow as "checkoutFlow",
         ticket_orders.checkout_session_id as "checkoutSessionId",
@@ -1248,6 +1270,7 @@ export async function updateTicketOrderPurchaserEmail(orderId: string, purchaser
         coalesce(ticket_orders.purchaser_email, '') as "purchaserEmail",
         coalesce(ticket_orders.purchaser_name, '') as "purchaserName",
         coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
+        coalesce(ticket_orders.receipt_access_version, 1) as "receiptAccessVersion",
         coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
         ticket_orders.ticket_quantity as "ticketQuantity",
         ticket_orders.ticket_tier_id as "ticketTierId",
@@ -1267,6 +1290,7 @@ export async function updateTicketOrderPurchaserEmail(orderId: string, purchaser
         ticket_tickets.original_seat_label as "originalSeatLabel",
         ticket_tickets.seat_label as "seatLabel",
         ticket_tickets.ticket_index as "ticketIndex",
+        coalesce(ticket_tickets.access_version, 1) as "accessVersion",
         ticket_tickets.ticket_status as "ticketStatus"
       from ticket_tickets
       where ticket_tickets.order_id = ${orderId}
@@ -1309,6 +1333,7 @@ export async function updateTicketOrderPurchaserPhone(orderId: string, purchaser
         coalesce(ticket_orders.purchaser_email, '') as "purchaserEmail",
         coalesce(ticket_orders.purchaser_name, '') as "purchaserName",
         coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
+        coalesce(ticket_orders.receipt_access_version, 1) as "receiptAccessVersion",
         coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
         ticket_orders.ticket_quantity as "ticketQuantity",
         ticket_orders.ticket_tier_id as "ticketTierId",
@@ -1328,6 +1353,7 @@ export async function updateTicketOrderPurchaserPhone(orderId: string, purchaser
         ticket_tickets.original_seat_label as "originalSeatLabel",
         ticket_tickets.seat_label as "seatLabel",
         ticket_tickets.ticket_index as "ticketIndex",
+        coalesce(ticket_tickets.access_version, 1) as "accessVersion",
         ticket_tickets.ticket_status as "ticketStatus"
       from ticket_tickets
       where ticket_tickets.order_id = ${orderId}
@@ -1375,6 +1401,7 @@ async function getTicketOrdersByIdsUsingSql(sql: Sql | TransactionSql, orderIds:
         coalesce(ticket_orders.purchaser_email, '') as "purchaserEmail",
         coalesce(ticket_orders.purchaser_name, '') as "purchaserName",
         coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
+        coalesce(ticket_orders.receipt_access_version, 1) as "receiptAccessVersion",
         coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
         ticket_orders.ticket_quantity as "ticketQuantity",
         ticket_orders.ticket_tier_id as "ticketTierId",
@@ -1390,6 +1417,7 @@ async function getTicketOrdersByIdsUsingSql(sql: Sql | TransactionSql, orderIds:
         ticket_tickets.original_seat_label as "originalSeatLabel",
         ticket_tickets.seat_label as "seatLabel",
         ticket_tickets.ticket_index as "ticketIndex",
+        coalesce(ticket_tickets.access_version, 1) as "accessVersion",
         ticket_tickets.ticket_status as "ticketStatus"
       from ticket_tickets
       where ticket_tickets.order_id in ${sql(orderIds)}
@@ -1452,6 +1480,7 @@ export async function getTicketOrderByCheckoutSessionId(checkoutSessionId: strin
         coalesce(ticket_orders.purchaser_email, '') as "purchaserEmail",
         coalesce(ticket_orders.purchaser_name, '') as "purchaserName",
         coalesce(ticket_orders.purchaser_phone, '') as "purchaserPhone",
+        coalesce(ticket_orders.receipt_access_version, 1) as "receiptAccessVersion",
         coalesce(ticket_orders.seat_assignment_mode, 'reserved') as "seatAssignmentMode",
         ticket_orders.ticket_quantity as "ticketQuantity",
         ticket_orders.ticket_tier_id as "ticketTierId",
@@ -1473,6 +1502,7 @@ export async function getTicketOrderByCheckoutSessionId(checkoutSessionId: strin
         ticket_tickets.original_seat_label as "originalSeatLabel",
         ticket_tickets.seat_label as "seatLabel",
         ticket_tickets.ticket_index as "ticketIndex",
+        coalesce(ticket_tickets.access_version, 1) as "accessVersion",
         ticket_tickets.ticket_status as "ticketStatus"
       from ticket_tickets
       where ticket_tickets.order_id = ${order.id}
@@ -2442,6 +2472,99 @@ export async function releasePaidSeatsForAdmin({
         notPaidSeatLabels,
         releasedSeatLabels: paidSeatLabels,
       };
+    }),
+  );
+}
+
+export async function transferPaidTicketOrder({
+  actorLabel,
+  checkoutSessionId,
+  notes,
+  purchaserEmail,
+  purchaserName,
+  purchaserPhone,
+}: TransferPaidTicketOrderParams) {
+  return withStore(async (sql) =>
+    sql.begin(async (tx) => {
+      const nextName = purchaserName.trim();
+      const nextEmail = purchaserEmail?.trim() || "";
+      const nextPhone = purchaserPhone?.trim() || "";
+
+      if (!checkoutSessionId.trim() || !nextName) {
+        throw new TicketingStoreError("A paid order and new recipient name are required.", 400);
+      }
+
+      if (!nextEmail && !nextPhone) {
+        throw new TicketingStoreError("Provide an email address or phone number for the new recipient.", 400);
+      }
+
+      const orders = await tx<{ id: string; purchaser_name: string }[]>`
+        select id, purchaser_name
+        from ticket_orders
+        where checkout_session_id = ${checkoutSessionId.trim()}
+          and event_slug = ${eventDetails.slug}
+          and order_status = 'paid'
+        for update
+      `;
+      const order = orders[0];
+
+      if (!order) {
+        throw new TicketingStoreError("A paid ticket order could not be found for transfer.", 404);
+      }
+
+      const activeTickets = await tx<{ id: string; seat_label: string }[]>`
+        select id, seat_label
+        from ticket_tickets
+        where order_id = ${order.id}
+          and ticket_status = 'active'
+        for update
+      `;
+
+      if (activeTickets.length < 1) {
+        throw new TicketingStoreError("This paid order has no active tickets to transfer.", 409);
+      }
+
+      await tx`
+        update ticket_orders
+        set purchaser_name = ${nextName},
+            purchaser_email = ${nextEmail},
+            purchaser_phone = ${nextPhone},
+            receipt_access_version = coalesce(receipt_access_version, 1) + 1,
+            updated_at = now()
+        where id = ${order.id}
+      `;
+
+      await tx`
+        update ticket_tickets
+        set access_version = coalesce(access_version, 1) + 1,
+            updated_at = now()
+        where id in ${tx(activeTickets.map((ticket) => ticket.id))}
+      `;
+
+      await tx`
+        insert into ticket_admin_audit (
+          id,
+          actor_label,
+          action_type,
+          order_id,
+          notes
+        )
+        values (
+          ${randomUUID()},
+          ${actorLabel.trim() || "Admin Transfer"},
+          'paid_ticket_transferred',
+          ${order.id},
+          ${`Transferred from ${order.purchaser_name || "previous recipient"} to ${nextName}. ${notes?.trim() || ""}`.trim()}
+        )
+      `;
+
+      const transferredOrder = await getTicketOrderByIdUsingSql(tx, order.id);
+
+      if (!transferredOrder) {
+        throw new TicketingStoreError("The paid ticket transfer could not be completed.", 500);
+      }
+
+      return transferredOrder;
     }),
   );
 }

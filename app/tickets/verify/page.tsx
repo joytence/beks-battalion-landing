@@ -199,6 +199,7 @@ export default async function TicketVerifyPage({ searchParams }: VerifyPageProps
     effectiveTierId === parsed.tierId &&
     quantity >= parsed.ticketIndex &&
     (!requiresPersistedTicket || Boolean(currentTicket && currentTicket.ticketStatus === "active")) &&
+    (!requiresPersistedTicket || (parsed.accessVersion ?? 1) === (currentTicket?.accessVersion ?? 1)) &&
     Boolean(tier && parsedTier);
 
   if (!valid || !tier) {

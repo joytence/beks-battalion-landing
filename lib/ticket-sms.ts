@@ -97,7 +97,7 @@ function buildPaidTicketSms(order: PaidOrderWithTickets, livemode: boolean) {
 
   const eventDate = formatEventDate(eventDetails.dateIso);
   const seatList = order.tickets.map((ticket) => ticket.seatLabel).join(", ");
-  const receiptUrl = getStripeReceiptUrl(order.checkoutSessionId);
+  const receiptUrl = getStripeReceiptUrl(order.checkoutSessionId, order.receiptAccessVersion ?? 1);
   const recipientName = order.purchaserName || "Guest";
   const modeLine = livemode ? "" : "Test mode only.";
   const message = [

@@ -174,7 +174,7 @@ export async function sendReservedSeatReceiptEmail({
 
   const eventDate = formatEventDate(eventDetails.dateIso);
   const seatList = order.tickets.map((ticket) => ticket.seatLabel).join(", ");
-  const receiptUrl = getStripeReceiptUrl(order.checkoutSessionId);
+  const receiptUrl = getStripeReceiptUrl(order.checkoutSessionId, order.receiptAccessVersion ?? 1);
   const subject = `${eventDetails.name} Tickets for ${order.purchaserName || "Guest"}`;
   const { html, text } = buildCustomerReceiptEmailContent({
     eventDate,
@@ -234,7 +234,7 @@ export async function sendReservedSeatSaleNotificationEmail({
 
   const eventDate = formatEventDate(eventDetails.dateIso);
   const seatList = order.tickets.map((ticket) => ticket.seatLabel).join(", ");
-  const receiptUrl = getStripeReceiptUrl(order.checkoutSessionId);
+  const receiptUrl = getStripeReceiptUrl(order.checkoutSessionId, order.receiptAccessVersion ?? 1);
   const subject = `${eventDetails.name} Sale Confirmed - ${order.purchaserName || "Guest"}`;
   const livemodeLabel = livemode ? "Live payment" : "Stripe test payment";
   const text = [
