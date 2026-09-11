@@ -6,6 +6,7 @@ import {
   formatCurrency,
   getTicketTierById,
   parseTicketUpgradeAccessToken,
+  ticketUpgradesEnabled,
 } from "@/lib/ticketing";
 import {
   getTicketOrderByCheckoutSessionId,
@@ -22,6 +23,18 @@ type UpgradePageProps = {
 };
 
 export default async function TicketUpgradePage({ searchParams }: UpgradePageProps) {
+  if (!ticketUpgradesEnabled) {
+    return (
+      <main className={styles.page}>
+        <section className={styles.sectionCard}>
+          <div className={styles.eyebrow}>Ticket upgrade</div>
+          <h1 className={styles.title}>Ticket upgrades are temporarily unavailable</h1>
+          <p className={styles.lead}>Please contact Joy Stage Productions for upgrade assistance.</p>
+        </section>
+      </main>
+    );
+  }
+
   const params = (await searchParams) || {};
   const access = typeof params.access === "string" ? params.access : "";
   const parsedAccess = access ? parseTicketUpgradeAccessToken(access) : null;

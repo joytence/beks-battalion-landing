@@ -40,6 +40,7 @@ import {
   getSiteUrl,
   parseStripeReceiptAccessToken,
   getTicketUpgradeUrl,
+  ticketUpgradesEnabled,
   getTicketAssignmentFieldLabel,
   getTicketAssignmentLabel,
   getTicketTierById,
@@ -274,7 +275,9 @@ export default async function TicketConfirmationPage({
     }),
   );
   const upgradeUrl =
-    checkoutFlow === "reserved_seat" && tier.id !== "svip" ? getTicketUpgradeUrl(session.id) : "";
+    ticketUpgradesEnabled && checkoutFlow === "reserved_seat" && tier.id !== "svip"
+      ? getTicketUpgradeUrl(session.id)
+      : "";
 
   const purchaseDataLayerPayload = {
     event: "stripe_checkout_purchase_confirmed",

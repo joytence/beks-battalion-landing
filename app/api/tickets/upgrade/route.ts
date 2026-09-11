@@ -10,6 +10,7 @@ import {
   getRequestOrigin,
   getTicketTierById,
   parseTicketUpgradeAccessToken,
+  ticketUpgradesEnabled,
 } from "@/lib/ticketing";
 import {
   getTicketOrderByCheckoutSessionId,
@@ -26,6 +27,13 @@ function clean(value: unknown) {
 }
 
 export async function POST(request: Request) {
+  if (!ticketUpgradesEnabled) {
+    return NextResponse.json(
+      { message: "Ticket upgrades are temporarily unavailable. Please contact Joy Stage Productions for assistance." },
+      { status: 503 },
+    );
+  }
+
   if (!isStripeConfigured()) {
     return NextResponse.json({ message: "Stripe is not configured yet." }, { status: 500 });
   }

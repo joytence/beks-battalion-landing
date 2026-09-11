@@ -5,6 +5,7 @@ import {
   getStripeReceiptUrl,
   getTicketTierById,
   getTicketUpgradeUrl,
+  ticketUpgradesEnabled,
 } from "@/lib/ticketing";
 import type { getTicketOrderByCheckoutSessionId } from "@/lib/ticketing-store";
 
@@ -186,7 +187,10 @@ export async function sendReservedSeatReceiptEmail({
     receiptUrlLabel: "Open or print your tickets here",
     seatList,
     tierName: tier.name,
-    upgradeUrl: tier.id === "svip" ? undefined : getTicketUpgradeUrl(order.checkoutSessionId),
+    upgradeUrl:
+      ticketUpgradesEnabled && tier.id !== "svip"
+        ? getTicketUpgradeUrl(order.checkoutSessionId)
+        : undefined,
   });
 
   const response = await fetch("https://api.resend.com/emails", {

@@ -138,6 +138,9 @@ type TicketUpgradeAccessPayload = {
   version: 1;
 };
 
+// Keep upgrade purchases paused until the current upgrade-flow issue is resolved.
+export const ticketUpgradesEnabled = false;
+
 type SeatBlockBlueprint = {
   blockedLabels: string[];
   blockLabel: string;
