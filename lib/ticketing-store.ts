@@ -1472,7 +1472,10 @@ export async function findPaidTicketOrders(searchTerm: string, limit = 10) {
     const normalizedSearchTerm = searchTerm.trim();
 
     if (!normalizedSearchTerm) {
-      throw new TicketingStoreError("Enter a seat, order, checkout session, email, or phone number.", 400);
+      throw new TicketingStoreError(
+        "Enter a purchaser name, seat, order, checkout session, email, or phone number.",
+        400,
+      );
     }
 
     const normalizedSearchUpper = normalizedSearchTerm.toUpperCase();

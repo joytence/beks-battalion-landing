@@ -268,16 +268,26 @@ export function AdminPaidRecoveryTools() {
 
       <div className={styles.adminFormGrid}>
         <label className={styles.field}>
-          <span>Paid Ticket Search</span>
+          <span>Find Tickets By Name, Seat, or Contact</span>
           <input
             {...adminInputProps}
             className={styles.textInput}
             onChange={(event) => setLookupQuery(event.target.value)}
-            placeholder="Seat, order ID, checkout session, email, phone, or name"
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && lookupQuery.trim() && !loading) {
+                event.preventDefault();
+                void loadOrders({ query: lookupQuery.trim() });
+              }
+            }}
+            placeholder="Enter any part of the purchaser's name, a seat, email, or phone"
             type="text"
             value={lookupQuery}
           />
         </label>
+      </div>
+
+      <div className={styles.notice}>
+        Search by a purchaser&apos;s full or partial name to find all of their current active tickets.
       </div>
 
       <div className={styles.adminActionRow}>

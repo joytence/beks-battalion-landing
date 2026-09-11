@@ -24,6 +24,9 @@ export default function TicketAdminPage() {
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/recover">
             Recover Paid Tickets
           </a>
+          <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/announce">
+            Text Announcement
+          </a>
           <a className={`${styles.secondaryButton} ${styles.backLink}`} href="/tickets/admin/seats">
             Seat Database
           </a>

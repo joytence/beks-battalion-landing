@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     if (!recent && !query) {
       return NextResponse.json(
-        { message: "Enter a seat, order, checkout session, email, or phone number." },
+        { message: "Enter a purchaser name, seat, order, checkout session, email, or phone number." },
         { status: 400 },
       );
     }

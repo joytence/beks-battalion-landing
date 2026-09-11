@@ -172,6 +172,44 @@ async function sendTicketSms({
   };
 }
 
+export async function sendAnnouncementSms({
+  message,
+  recipientPhones,
+}: {
+  message: string;
+  recipientPhones: string[];
+}) {
+  const announcement = `Joy Stage Productions: ${message.trim()}\nReply STOP to opt out.`;
+  const recipients = Array.from(
+    new Set(recipientPhones.map((phone) => normalizePhoneNumber(phone)).filter(Boolean)),
+  );
+  const delivered: string[] = [];
+  const failed: string[] = [];
+
+  for (let start = 0; start < recipients.length; start += 5) {
+    const batch = recipients.slice(start, start + 5);
+    const results = await Promise.all(
+      batch.map(async (recipientPhone) => {
+        try {
+          const result = await sendTicketSms({
+            message: announcement,
+            purchaserPhone: recipientPhone,
+          });
+          return { phone: result.purchaserPhone, sent: true };
+        } catch {
+          return { phone: recipientPhone, sent: false };
+        }
+      }),
+    );
+
+    for (const result of results) {
+      (result.sent ? delivered : failed).push(result.phone);
+    }
+  }
+
+  return { delivered, failed, message: announcement };
+}
+
 export async function sendAdminIssuedTicketSms(order: AdminIssuedOrderWithTickets) {
   const { message, receiptUrl } = buildAdminIssuedTicketSms(order);
   const smsResult = await sendTicketSms({
