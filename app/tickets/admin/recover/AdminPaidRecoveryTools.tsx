@@ -473,6 +473,63 @@ export function AdminPaidRecoveryTools() {
               </div>
             </div>
 
+            <div className={styles.notice}>
+              <strong>1. Update Existing Ticket Delivery</strong>
+              <br />Use these fields only to add or correct the current ticket holder&apos;s contact, then resend their existing ticket.
+            </div>
+
+            <div className={styles.adminFormGrid}>
+              <label className={styles.field}>
+                <span>Existing Ticket Email</span>
+                <input
+                  {...adminInputProps}
+                  className={styles.textInput}
+                  onChange={(event) => updateDraft(order.checkoutSessionId, "email", event.target.value)}
+                  placeholder="recipient@example.com"
+                  type="email"
+                  value={draft.email}
+                />
+              </label>
+              <label className={styles.field}>
+                <span>Existing Ticket Phone</span>
+                <input
+                  {...adminInputProps}
+                  className={styles.textInput}
+                  onChange={(event) => updateDraft(order.checkoutSessionId, "phone", event.target.value)}
+                  placeholder="+1 555 555 5555"
+                  type="text"
+                  value={draft.phone}
+                />
+              </label>
+            </div>
+
+            <div className={styles.adminActionRow}>
+              <a className={styles.secondaryButton} href={order.receiptUrl}>
+                Open Existing Ticket
+              </a>
+              <button
+                className={styles.primaryButton}
+                disabled={processingActionKey === emailKey}
+                onClick={() => resend(order, "email")}
+                type="button"
+              >
+                {processingActionKey === emailKey ? "Sending Email..." : "Resend Existing Email"}
+              </button>
+              <button
+                className={styles.secondaryButton}
+                disabled={processingActionKey === textKey}
+                onClick={() => resend(order, "text")}
+                type="button"
+              >
+                {processingActionKey === textKey ? "Sending Text..." : "Resend Existing Text"}
+              </button>
+            </div>
+
+            <div className={styles.notice}>
+              <strong>2. Reassign Selected Seats To A New Recipient</strong>
+              <br />This creates replacement tickets for only the checked seats. It does not refund or change the Stripe payment.
+            </div>
+
             <div className={styles.adminFormGrid}>
               <label className={styles.field}>
                 <span>New Recipient Name</span>
@@ -486,14 +543,11 @@ export function AdminPaidRecoveryTools() {
                 />
               </label>
               <label className={styles.field}>
-                <span>Receipt Email</span>
+                <span>New Recipient Email</span>
                 <input
                   {...adminInputProps}
                   className={styles.textInput}
-                  onChange={(event) => {
-                    updateTransferDraft(order.checkoutSessionId, "email", event.target.value);
-                    updateDraft(order.checkoutSessionId, "email", event.target.value);
-                  }}
+                  onChange={(event) => updateTransferDraft(order.checkoutSessionId, "email", event.target.value)}
                   placeholder="recipient@example.com"
                   type="email"
                   value={transferDraft.email}
@@ -501,14 +555,11 @@ export function AdminPaidRecoveryTools() {
               </label>
 
               <label className={styles.field}>
-                <span>Receipt Phone</span>
+                <span>New Recipient Phone</span>
                 <input
                   {...adminInputProps}
                   className={styles.textInput}
-                  onChange={(event) => {
-                    updateTransferDraft(order.checkoutSessionId, "phone", event.target.value);
-                    updateDraft(order.checkoutSessionId, "phone", event.target.value);
-                  }}
+                  onChange={(event) => updateTransferDraft(order.checkoutSessionId, "phone", event.target.value)}
                   placeholder="+1 555 555 5555"
                   type="text"
                   value={transferDraft.phone}
@@ -537,25 +588,6 @@ export function AdminPaidRecoveryTools() {
                 type="button"
               >
                 {processingActionKey === transferKey ? "Transferring..." : "Transfer Selected Seats"}
-              </button>
-              <a className={styles.secondaryButton} href={order.receiptUrl}>
-                Open Printable Ticket
-              </a>
-              <button
-                className={styles.primaryButton}
-                disabled={processingActionKey === emailKey}
-                onClick={() => resend(order, "email")}
-                type="button"
-              >
-                {processingActionKey === emailKey ? "Sending Email..." : "Resend Email"}
-              </button>
-              <button
-                className={styles.secondaryButton}
-                disabled={processingActionKey === textKey}
-                onClick={() => resend(order, "text")}
-                type="button"
-              >
-                {processingActionKey === textKey ? "Sending Text..." : "Resend Text"}
               </button>
             </div>
 
