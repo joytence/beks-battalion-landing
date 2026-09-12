@@ -486,13 +486,14 @@ export function AdminPaidRecoveryTools() {
                 />
               </label>
               <label className={styles.field}>
-                <span>New Recipient Email</span>
+                <span>Receipt Email</span>
                 <input
                   {...adminInputProps}
                   className={styles.textInput}
-                  onChange={(event) =>
-                    updateTransferDraft(order.checkoutSessionId, "email", event.target.value)
-                  }
+                  onChange={(event) => {
+                    updateTransferDraft(order.checkoutSessionId, "email", event.target.value);
+                    updateDraft(order.checkoutSessionId, "email", event.target.value);
+                  }}
                   placeholder="recipient@example.com"
                   type="email"
                   value={transferDraft.email}
@@ -500,13 +501,14 @@ export function AdminPaidRecoveryTools() {
               </label>
 
               <label className={styles.field}>
-                <span>New Recipient Phone</span>
+                <span>Receipt Phone</span>
                 <input
                   {...adminInputProps}
                   className={styles.textInput}
-                  onChange={(event) =>
-                    updateTransferDraft(order.checkoutSessionId, "phone", event.target.value)
-                  }
+                  onChange={(event) => {
+                    updateTransferDraft(order.checkoutSessionId, "phone", event.target.value);
+                    updateDraft(order.checkoutSessionId, "phone", event.target.value);
+                  }}
                   placeholder="+1 555 555 5555"
                   type="text"
                   value={transferDraft.phone}
