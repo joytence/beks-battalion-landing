@@ -1,0 +1,277 @@
+.page {
+  min-height: 100vh;
+  padding: clamp(24px, 5vw, 72px) clamp(18px, 4vw, 52px) 0;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 122, 0, 0.24), transparent 32%),
+    radial-gradient(circle at 90% 20%, rgba(255, 31, 120, 0.16), transparent 28%),
+    linear-gradient(180deg, #080604 0%, #0d0905 58%, #050505 100%);
+}
+
+.hero,
+.routeGrid,
+.destinationCard,
+.note {
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero {
+  padding: clamp(28px, 5vw, 64px);
+  border: 1px solid rgba(255, 207, 90, 0.32);
+  border-radius: 36px;
+  background:
+    linear-gradient(135deg, rgba(35, 19, 4, 0.94), rgba(11, 10, 9, 0.96) 60%),
+    #0b0a09;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.44);
+}
+
+.backLink {
+  display: inline-flex;
+  margin-bottom: 42px;
+  color: rgba(255, 239, 193, 0.82);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--gold-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.hero h1,
+.destinationCard h2 {
+  margin: 0;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: clamp(3rem, 9vw, 6.4rem);
+  letter-spacing: 0.055em;
+  line-height: 0.88;
+  text-transform: uppercase;
+}
+
+.lead {
+  max-width: 700px;
+  margin: 24px 0 0;
+  color: rgba(245, 241, 232, 0.8);
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  line-height: 1.65;
+}
+
+.mapActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 34px;
+}
+
+.googleButton,
+.appleButton,
+.downloadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 13px 20px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.googleButton {
+  background: var(--gold-soft);
+  color: #17100a;
+}
+
+.appleButton {
+  border: 1px solid rgba(255, 207, 90, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.downloadButton {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.routeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.parkingGuide {
+  max-width: 1120px;
+  margin: 22px auto 0;
+  overflow: hidden;
+  border: 1px solid rgba(255, 207, 90, 0.3);
+  border-radius: 32px;
+  background: rgba(10, 9, 7, 0.9);
+}
+
+.parkingGuideHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: clamp(24px, 4vw, 38px) clamp(24px, 5vw, 52px) 22px;
+}
+
+.parkingGuide h2 {
+  margin: 0;
+  font-family: var(--font-bebas-neue), sans-serif;
+  font-size: clamp(2.3rem, 5vw, 4rem);
+  letter-spacing: 0.06em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.mapDownloadLink {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 15px;
+  border: 1px solid rgba(255, 207, 90, 0.46);
+  border-radius: 999px;
+  color: var(--gold-soft);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.parkingGuide img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-top: 1px solid rgba(255, 207, 90, 0.24);
+  border-bottom: 1px solid rgba(255, 207, 90, 0.24);
+}
+
+.parkingGuide > p {
+  margin: 0;
+  padding: 18px clamp(24px, 5vw, 52px) 24px;
+  color: rgba(245, 241, 232, 0.76);
+  line-height: 1.55;
+}
+
+.routeCard {
+  min-height: 210px;
+  padding: 28px;
+  border: 1px solid rgba(255, 207, 90, 0.2);
+  border-radius: 28px;
+  background: linear-gradient(145deg, rgba(22, 16, 7, 0.92), rgba(8, 8, 8, 0.94));
+}
+
+.routeBadge {
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(245, 179, 33, 0.14);
+  color: var(--gold-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.routeCard p {
+  margin: 22px 0 0;
+  color: rgba(245, 241, 232, 0.9);
+  font-size: clamp(1.1rem, 2vw, 1.36rem);
+  line-height: 1.45;
+}
+
+.destinationCard {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  margin-top: 22px;
+  padding: clamp(28px, 5vw, 52px);
+  border: 1px solid rgba(255, 207, 90, 0.32);
+  border-radius: 32px;
+  background:
+    radial-gradient(circle at 80% 50%, rgba(255, 122, 0, 0.24), transparent 27%),
+    #100c06;
+}
+
+.destinationCard h2 {
+  font-size: clamp(2.4rem, 6vw, 4.6rem);
+}
+
+.destinationCard p:not(.eyebrow) {
+  margin: 16px 0 0;
+  color: rgba(245, 241, 232, 0.78);
+  font-size: 1.08rem;
+}
+
+.destinationCard .eventTime {
+  color: var(--gold-soft);
+  font-weight: 800;
+}
+
+.pin {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  flex: 0 0 auto;
+  border: 2px solid var(--gold-soft);
+  border-radius: 52% 52% 52% 0;
+  transform: rotate(-45deg);
+  background: linear-gradient(135deg, #ff8c19, #ef2c70);
+  box-shadow: 0 0 42px rgba(255, 122, 0, 0.4);
+}
+
+.pin span {
+  position: absolute;
+  inset: 29px;
+  border: 3px solid #16100a;
+  border-radius: 999px;
+}
+
+.note {
+  margin-top: 24px;
+  margin-bottom: 56px;
+  color: rgba(245, 241, 232, 0.68);
+  line-height: 1.6;
+  text-align: center;
+}
+
+@media (max-width: 680px) {
+  .routeGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .parkingGuideHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .destinationCard {
+    align-items: flex-start;
+  }
+
+  .pin {
+    width: 76px;
+    height: 76px;
+  }
+
+  .pin span {
+    inset: 19px;
+  }
+
+  .mapActions > * {
+    width: 100%;
+  }
+}

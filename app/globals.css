@@ -712,6 +712,26 @@ a {
     0 5px 14px rgba(0, 0, 0, 0.68);
 }
 
+.hero__eventline-directions {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 10px;
+  padding: 8px 13px;
+  border: 1px solid rgba(255, 207, 90, 0.42);
+  border-radius: 999px;
+  color: var(--gold-soft);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.hero__eventline-directions:hover {
+  background: var(--gold-soft);
+  color: #17100a;
+}
+
 .hero__countdown-strip {
   position: relative;
   z-index: 2;

@@ -69,6 +69,9 @@ export function SiteFooter() {
             <a className="footer__privacy" href="/terms">
               Terms And Conditions
             </a>
+            <a className="footer__privacy" href="/directions">
+              Directions And Parking
+            </a>
           </div>
           <a className="footer__support" href="mailto:joy.tence@joystageproductions.com">
             Customer support: joy.tence@joystageproductions.com

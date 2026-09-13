@@ -46,6 +46,7 @@ import {
   getTicketTierById,
   parseSeatLabels,
 } from "@/lib/ticketing";
+import { venueDirections } from "@/lib/venue-directions";
 
 export const metadata: Metadata = {
   title: "Ticket Confirmation | Joy Stage Productions",
@@ -369,6 +370,19 @@ export default async function TicketConfirmationPage({
           <a className={styles.secondaryButton} href="/tickets">
             Buy More Tickets
           </a>
+        </div>
+        <div className={styles.directionsPanel}>
+          <strong>Need help finding the theater?</strong>
+          <span>Use the guest arrival guide for the correct Olympic Parkway parking turn.</span>
+          <div className={styles.directionsActions}>
+            <a href="/directions">Directions and Parking</a>
+            <a href={venueDirections.googleMapsUrl} target="_blank" rel="noreferrer">
+              Google Maps
+            </a>
+            <a href={venueDirections.appleMapsUrl} target="_blank" rel="noreferrer">
+              Apple Maps
+            </a>
+          </div>
         </div>
       </section>
 

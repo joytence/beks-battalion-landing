@@ -134,6 +134,9 @@ export default async function Page() {
             <div className="hero__eventline-title">IN SAN DIEGO</div>
             <div className="hero__eventline-date">SEP 13, 2026 | 4PM to 7:30PM</div>
             <div className="hero__eventline-venue">@ Otay Ranch High School, Chula Vista.</div>
+            <a className="hero__eventline-directions" href="/directions">
+              Directions and parking
+            </a>
           </div>
 
           <div className="hero__visual">

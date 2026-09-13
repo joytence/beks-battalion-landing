@@ -7,6 +7,12 @@ import {
   getTicketUpgradeUrl,
   ticketUpgradesEnabled,
 } from "@/lib/ticketing";
+import {
+  getVenueArrivalGuideUrl,
+  getVenueDirectionsPageUrl,
+  getVenueParkingGuideUrl,
+  venueDirections,
+} from "@/lib/venue-directions";
 import type { getTicketOrderByCheckoutSessionId } from "@/lib/ticketing-store";
 
 const sender = "Joy Stage Productions <inquiries@joystageproductions.com>";
@@ -55,6 +61,9 @@ function buildCustomerReceiptEmailContent({
   const testModeNotice = livemode
     ? ""
     : "Stripe test mode was used for this order. These tickets are for testing only.\n\n";
+  const directionsPageUrl = getVenueDirectionsPageUrl();
+  const arrivalGuideUrl = getVenueArrivalGuideUrl();
+  const parkingGuideUrl = getVenueParkingGuideUrl();
   const text = [
     `Hello ${purchaserName},`,
     "",
@@ -68,6 +77,7 @@ function buildCustomerReceiptEmailContent({
     `Event: ${eventDetails.name}`,
     `Date: ${eventDate}`,
     `Venue: ${eventDetails.venue}`,
+    `Address: ${venueDirections.address}`,
     `Seats: ${seatList}`,
     `Tier: ${tierName}`,
     `Order Total: ${orderTotalLabel}`,
@@ -75,6 +85,17 @@ function buildCustomerReceiptEmailContent({
     `${receiptUrlLabel}:`,
     receiptUrl,
     ...(upgradeUrl ? ["", "Upgrade eligible tickets to SVIP:", upgradeUrl] : []),
+    "",
+    "Directions and parking:",
+    directionsPageUrl,
+    "Google Maps:",
+    venueDirections.googleMapsUrl,
+    "Apple Maps:",
+    venueDirections.appleMapsUrl,
+    "Downloadable parking map:",
+    parkingGuideUrl,
+    "Printable arrival notes:",
+    arrivalGuideUrl,
     "",
     "The ticket page includes the QR codes required for entry.",
     "",
@@ -137,6 +158,11 @@ function buildCustomerReceiptEmailContent({
         </a>
       </p>
       <p style="margin: 0 0 16px; color: #444;">If the button does not open, use this secure link:<br /><a href="${escapeHtml(receiptUrl)}">${escapeHtml(receiptUrl)}</a></p>
+      <div style="max-width: 720px; margin: 0 0 20px; padding: 18px; border: 1px solid #dec372; border-radius: 12px; background: #fff9e9;">
+        <strong style="display: block; margin-bottom: 8px; color: #4e3500;">Directions and parking</strong>
+        <p style="margin: 0 0 10px; color: #3b3020;">The theater is at ${escapeHtml(venueDirections.address)}. From SR-125, make a left into the school parking area from Olympic Parkway. From I-805, make a right into the school parking area from Olympic Parkway.</p>
+        <p style="margin: 0;"><a href="${escapeHtml(directionsPageUrl)}">Guest directions and parking</a> &middot; <a href="${escapeHtml(venueDirections.googleMapsUrl)}">Google Maps</a> &middot; <a href="${escapeHtml(venueDirections.appleMapsUrl)}">Apple Maps</a> &middot; <a href="${escapeHtml(parkingGuideUrl)}">Download parking map</a></p>
+      </div>
       ${
         upgradeUrl
           ? `<p style="margin: 0 0 18px;"><a href="${escapeHtml(upgradeUrl)}" style="display: inline-block; padding: 12px 18px; border-radius: 999px; background: #f5b942; color: #111; text-decoration: none; font-weight: 700;">Upgrade to SVIP</a></p>`
